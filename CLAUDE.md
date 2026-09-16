@@ -1,273 +1,119 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (and other AI agents) working in this repository.
 
-> **Cutover note (Step 7):** The React/Webpack web codebase has been deleted and the
-> source of truth is the Rust workspace in `rust-app/` (Leptos WASM frontend + Axum
-> backend). Build with `bash rust-app/build.sh`, test with `cargo test --workspace`,
-> run parity suite at `rust-app/tests/e2e`. The commands below apply only to the
-> removed React codebase and are kept for historical reference.
+> **Cutover note:** the React/Webpack web codebase, the mobile apps, and the server
+> packaging infrastructure have been deleted. The repository root is now a single Rust
+> workspace: a Leptos (WASM) frontend, an Axum backend, and a `shared` crate holding the
+> WebSocket types. There is no JavaScript source to edit — the only Node project is the
+> Playwright suite.
 
-## Development Commands
+## Repository layout
 
-### Building and Development
-- `npm run lint-fix` - Automatically fix linting issues
-- `npm run tsc:ci` - Run TypeScript checks for both web and native platforms
-- `npm run tsc:web` - TypeScript check for web platform only
-- `npm run tsc:native` - TypeScript check for native platform only
-- `npm run lint:ci` - Run ESLint without type checking
-- `make dev` - Start development server with webpack-dev-server
-- `make compile` - Build production bundles
-- `make clean` - Clean build directory
-- `make all` - Full build (compile + deploy)
+| Path | What it contains |
+|---|---|
+| `backend/` | Axum server. `src/main.rs` builds the router and state; `src/handlers/` holds one module per feature; `src/api.rs` re-exports the route handlers; `static/` holds the stylesheet |
+| `frontend/` | Leptos client-side-rendered WASM app. Feature modules at `src/`, reusable widgets under `src/components_ui/`, pages under `src/pages/` |
+| `shared/` | `serde` types for both sides of the WebSocket (`src/lib.rs`) |
+| `tests/e2e/` | Playwright suites, including the screenshot gallery and the contrast audit |
+| `tests/screenshots/` | Generated PNG gallery referenced by the README |
+| `docs/` | Architecture, development and feature documentation |
+| `build.sh`, `Makefile`, `Cargo.toml` | Build tooling and the workspace manifest |
 
-### Testing
-- `npm test` - Run full test suite using WebDriverIO
-- `npm run test-single -- <spec-file>` - Run single test file
-- `npm run test-dev` - Run tests against development environment
-- `npm run test-dev-single -- <spec-file>` - Run single test in dev mode
+## Commands
 
+Run everything from the repository root.
 
-### Language Tools
-- `npm run lang-sort` - Sort language files
-- `npm run lint:lang` - Validate JSON language files
+```sh
+bash build.sh                            # WASM + bindings → frontend/pkg, copies index.html
+cargo run -p backend                     # serves http://localhost:3000
+cargo test --workspace                   # 102 unit tests
+cargo fmt --all -- --check               # formatting check
+cargo clippy --workspace -- -D warnings  # lints (warnings are errors)
 
-### Platform-Specific TypeScript
-TypeScript configuration is split between web and native platforms with separate tsconfig files.
-
-## Architecture Overview
-
-### Multi-Platform Structure
-Juncto supports both web and React Native platforms with platform-specific file extensions and directories:
-- `.web.ts/.web.tsx` - Web-specific implementations
-- `.native.ts/.native.tsx` - React Native-specific implementations
-- `.any.ts/.any.tsx` - Shared cross-platform code
-- `.android.ts/.android.tsx` - Android-specific code
-- `.ios.ts/.ios.tsx` - iOS-specific code
-- `web/` directories - Web-specific components and modules
-- `native/` directories - React Native-specific components and modules
-- `react/features/mobile/` - Native-only features
-
-### Core Directories
-- `react/features/` - Main application features organized by domain (83+ feature modules)
-- `modules/` - Legacy JavaScript modules and APIs
-- `css/` - SCSS stylesheets compiled to CSS
-- `libs/` - Compiled output directory for JavaScript bundles
-- `static/` - Static assets and HTML files
-- `tests/` - WebDriverIO end-to-end tests
-
-### Feature-Driven Architecture
-The application is organized under `react/features/` with each feature containing:
-
-- **`actionTypes.ts`** - Redux action type constants
-- **`actions.ts`** - Redux action creators (platform-specific variants with `.any.ts`, `.web.ts`, `.native.ts`)
-- **`reducer.ts`** - Redux reducer functions
-- **`middleware.ts`** - Redux middleware for side effects
-- **`functions.ts`** - Utility functions and selectors
-- **`constants.ts`** - Feature-specific constants
-- **`logger.ts`** - Feature-specific logger instance
-- **`types.ts`** - TypeScript type definitions
-
-### Key Application Files
-- `app.js` - Main web application entry point
-- `webpack.config.js` - Multi-bundle Webpack configuration
-- `Makefile` - Build system for development and production
-- `package.json` - Dependencies and scripts with version requirements
-
-### Bundle Architecture
-The application builds multiple bundles:
-- `app.bundle.js` / `app.bundle.min.js` - Main application bundle (entry: `./app.js`)
-- `external_api.js` / `external_api.min.js` - External API for embedders (entry: `./modules/API/external/index.js`)
-- `alwaysontop.js` / `alwaysontop.min.js` - Always-on-top window functionality (entry: `./react/features/always-on-top/index.tsx`)
-- `close3.js` / `close3.min.js` - Close3 functionality (entry: `./static/close3.js`)
-- `face-landmarks-worker.js` / `face-landmarks-worker.min.js` - Face landmarks detection worker (entry: `./react/features/face-landmarks/faceLandmarksWorker.ts`)
-- `noise-suppressor-worklet.js` / `noise-suppressor-worklet.min.js` - Audio noise suppression worklet (entry: `./react/features/stream-effects/noise-suppression/NoiseSuppressorWorklet.ts`)
-- `screenshot-capture-worker.js` / `screenshot-capture-worker.min.js` - Screenshot capture worker (entry: `./react/features/screenshot-capture/worker.ts`)
-
-### Redux Architecture
-Features follow a Redux-based architecture with:
-- Actions, reducers, and middleware in each feature directory
-- Cross-platform state management
-- Modular feature organization with clear boundaries
-
-The codebase uses a registry-based Redux architecture:
-- **ReducerRegistry** - Features register their reducers independently
-- **MiddlewareRegistry** - Features register middleware without cross-dependencies
-- **IReduxState** - Global state is strongly typed with 80+ feature states
-
-### Dependencies
-- Uses `lib-juncto` as the core WebRTC library
-- React with TypeScript support
-- React Native for mobile applications
-- Webpack for bundling with development server
-
-### TypeScript Configuration
-- `tsconfig.web.json` - Web platform TypeScript config (excludes native files)
-- `tsconfig.native.json` - React Native TypeScript config (excludes web files)
-- Strict TypeScript settings with ES2024 target
-- Platform-specific module suffixes (`.web`, `.native`)
-
-### Key Base Features
-- **`base/app/`** - Application lifecycle management
-- **`base/conference/`** - Core conference logic
-- **`base/tracks/`** - Media track management
-- **`base/participants/`** - Participant management
-- **`base/config/`** - Configuration management
-- **`base/redux/`** - Redux infrastructure
-
-### Component Patterns
-- **Abstract Components** - Base classes for cross-platform components
-- **Platform-Specific Components** - Separate implementations in `web/` and `native/` directories
-- **Hook-based patterns** - Modern React patterns for component logic
-### Testing Framework
-- WebDriverIO for end-to-end testing
-- Test files are located in `tests/specs/` and use page objects in `tests/pageobjects/`.
-- Environment configuration via `.env` files
-- Support for Chrome, Firefox, and grid testing
-
-## Development Guidelines
-
-### Adding New Features
-1. Create feature directory under `react/features/[feature-name]/`
-2. Follow the standard file structure (actionTypes, actions, reducer, etc.)
-3. Register reducers and middleware using the registry pattern
-4. Define TypeScript interfaces for state and props
-5. Use platform-specific files for web/native differences
-6. Add feature-specific logger for debugging
-
-### Working with Existing Features
-1. Check for existing `.any.ts`, `.web.ts`, `.native.ts` variants
-2. Follow established action-reducer-middleware patterns
-3. Use existing base utilities rather than creating new ones
-4. Leverage abstract components for cross-platform logic
-5. Maintain type safety across the entire state tree
-
-### Testing
-The project uses WebDriver (WebdriverIO) for end-to-end testing. Test files are located in `tests/specs/` and use page objects in `tests/pageobjects/`.
-
-### Build System
-- **Webpack** - Main build system for web bundles
-- **Makefile** - Coordinates build process and asset deployment
-- **Metro** - React Native bundler (configured in `metro.config.js`)
-
-### Platform-Specific Notes
-- Web builds exclude files matching `**/native/*`, `**/*.native.ts`, etc.
-- Native builds exclude files matching `**/web/*`, `**/*.web.ts`, etc.
-- Use `moduleSuffixes` in TypeScript config to handle platform-specific imports
-- Check `tsconfig.web.json` and `tsconfig.native.json` for platform-specific exclusions
-
-## Environment and Setup Requirements
-
-### System Requirements
-- **Node.js and npm** are required
-- Development server runs at https://localhost:8080/
-- Certificate errors in development are expected (self-signed certificates)
-
-### Development Workflow
-- Development server proxies to configurable target (default: https://alpha.juncto.net)
-- Hot module replacement enabled for development
-- Bundle analysis available via `ANALYZE_BUNDLE=true` environment variable
-- Circular dependency detection via `DETECT_CIRCULAR_DEPS=true`
-
-## Code Quality Requirements
-- All code must pass `npm run lint:ci` and `npm run tsc:ci` with 0 warnings before committing
-- TypeScript strict mode enabled - avoid `any` type
-- ESLint config extends `@juncto/eslint-config`
-- Prefer TypeScript for new features, convert existing JavaScript when possible
-
-## Code Style and Standards
-
-### Conventional Commits Format
-Follow [Conventional Commits](https://www.conventionalcommits.org) with **mandatory scopes**:
-```
-feat(feature-name): description
-fix(feature-name): description
-docs(section): description
-```
-Available types: build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test
-
-### Feature Layout Structure
-When adding new features:
-```
-react/features/sample/
-├── actionTypes.ts
-├── actions.ts
-├── components/
-│   ├── AnotherComponent.tsx
-│   └── OneComponent.tsx
-├── middleware.ts
-└── reducer.ts
+cd tests/e2e && npx playwright test                        # full e2e suite
+cd tests/e2e && npx playwright test screenshot-gallery.spec.ts   # regenerate README images
+cd tests/e2e && npx playwright test contrast-audit.spec.ts       # dialog legibility audit
 ```
 
-### TypeScript Requirements
-- All new features must be written in TypeScript
-- Convert JavaScript to TypeScript when modifying existing code
-- Import middleware in `react/features/app/middlewares.{any,native,web}.js`
-- Import reducers in appropriate registry files
-- Avoid `index` files
+Environment notes:
 
-### Bundle Size Management
-- Bundle size limits are enforced to prevent bloat
-- For increases, analyze first: `npx webpack -p --analyze-bundle`
-- Open analyzer: `npx webpack-bundle-analyzer build/app-stats.json`
-- Justify any dependency additions that increase bundle size
+* `pkg-config` and OpenSSL headers are required because the host build of `frontend` links
+  OpenSSL through `reqwest`. Without them `cargo test` fails with an `openssl-sys` error.
+  Use `cargo test -p shared` or `-p backend` to avoid building the frontend for the host.
+* The Playwright suite refuses to start if something already listens on port 3000.
 
-## Testing and Quality Assurance
+## Architecture in one minute
 
-### Tests
-- End-to-end tests are defined in the tests/
-- Tests run automatically for project member PRs via Jenkins
-- Tests cover peer-to-peer, invites, iOS, Android, and web platforms
-- Beta testing available at https://beta.meet.juncto.net/
+One WebSocket at `/ws/chat` carries everything: chat, polls, whiteboard strokes, breakout
+transitions, moderation, remote-control signalling and WebRTC SDP/ICE. Messages are
+`shared::ClientMessage` and `shared::ServerMessage` — a single Rust enum each, compiled
+into both the WASM client and the native server, so protocol drift is a compile error.
 
-### Manual Testing Checklist
-- Test with 2 participants (P2P mode)
-- Test with 3+ participants (JUNCTOBRIDGE mode)
-- Verify audio/video in both modes
-- Test mobile apps if changes affect mobile
-- Check that TLS certificate chain is complete for mobile app compatibility
+* Media is a peer-to-peer WebRTC mesh; the server only relays signalling and room events.
+* Room state is in-memory behind mutexes, fanned out over a `tokio::sync::broadcast`
+  channel, plus a direct channel per socket for messages addressed to one client.
+* Static directories resolve against `env!("CARGO_MANIFEST_DIR")`, so the binary serves the
+  client regardless of the process working directory.
+* The client is Leptos CSR (no SSR). One `active_panel` signal makes the chat,
+  participants and files panels mutually exclusive; at ≤ 768 px the panel starts closed.
 
-## Common Issues and Debugging
+See `docs/ARCHITECTURE.md` for the full picture.
 
-### P2P vs JUNCTOBRIDGE Problems
-- **Works with 2 participants, fails with 3+**: JUNCTOBRIDGE/firewall issue, check UDP 10000
-- **Works on web, fails on mobile apps**: TLS certificate chain issue, need fullchain.pem
-- Use the tests from tests/ directory to verify functionality across platforms
+## Conventions
 
-### Development Server Issues
-- Certificate warnings are normal for development (self-signed)
-- Use different backend with WEBPACK_DEV_SERVER_PROXY_TARGET environment variable
-- Check firewall settings if local development fails
+### Commit messages
 
-### Configuration and Customization
-- Extensive configuration options documented in handbook
-- See `config.js` for client-side options
-- Options marked 🚫 are not overwritable through `configOverwrite`
-- Reference [Configuration Guide](https://juncto.github.io/handbook/docs/dev-guide/dev-guide-configuration) for details
+[Conventional Commits](https://www.conventionalcommits.org) with a scope:
 
-## Architecture Deep Dive
+```
+feat(chat): add message reactions
+fix(webrtc): negotiate ICE before SDP answer
+docs(readme): document the screenshot gallery
+```
 
-### Core Application Files
-- **`./conference.js`** - Foundation for user-conference interactions (connection, joining, muting)
-- **`./modules/external-api`** - External API for iframe integration and events
-- **`./lang/`** - Translations in `main-[language].json` files
-- **`./css/`** - SCSS files organized by features, matching React feature structure
+Types in use: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
+`style`, `test`.
 
-### State Management Flow
-1. Actions dispatched from components
-2. Middleware processes side effects
-3. Reducers update state
-4. Components re-render based on state changes
-5. Registry pattern keeps features decoupled
+### Rust
 
-### Cross-Platform Strategy
-- Abstract components handle shared logic
-- Platform files (.web.ts, .native.ts) handle platform differences
-- Build system excludes irrelevant platform files
-- TypeScript configs ensure proper platform targeting
+* Run `cargo fmt` and `cargo clippy --workspace -- -D warnings` before committing.
+* Put unit tests in a `#[cfg(test)] mod tests` block beside the code they cover.
+* When you add a `ClientMessage` or `ServerMessage` variant, handle it explicitly in the
+  dispatch `match` in `backend/src/handlers/ws.rs` — the compiler will point you there.
+* Prefer adding a module under `frontend/src/` (or `components_ui/`) over growing
+  `pages/room.rs`, which already composes a large number of dialogs.
 
-## External Resources
-- [Juncto Handbook](https://juncto.github.io/handbook/) - Comprehensive documentation
-- [Community Forum](https://community.juncto.org/) - Ask questions and get support
-- [Architecture Guide](https://juncto.github.io/handbook/docs/architecture) - System overview
-- [Contributing Guidelines](https://juncto.github.io/handbook/docs/dev-guide/dev-guide-contributing/) - Detailed contribution process
+### Styling
+
+All CSS lives in `backend/static/styles.css`, driven by the custom properties on `:root`
+(`--bg-surface`, `--text-primary`, `--primary-color`, `--radius-*`, `--shadow-*`, …). Use
+those tokens rather than literal colours: hardcoded hex values are what produced the
+near-white-on-white dialog bugs, and the contrast audit will now fail the build for them.
+Responsive rules belong in the `@media` blocks at the bottom of the file (768 px, 480 px).
+
+## Testing expectations
+
+* A pure-logic change should come with a unit test.
+* A UI behaviour change should come with a Playwright spec in `tests/e2e/`.
+* A new screen should be added to `screenshot-gallery.spec.ts` and referenced from the
+  README. Keep the numbered file-name ordering intact.
+* If you change CSS or dialog markup, run `contrast-audit.spec.ts`.
+* Never commit a screenshot you have not looked at. Blank, white or unstyled captures are
+  the failure mode this suite exists to catch — regenerate and fix the UI first.
+
+## CI
+
+`.github/workflows/rust-ci.yml` runs two jobs:
+
+1. `checks` — `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`,
+   `cargo test --workspace`.
+2. `e2e` — `build.sh` plus the Playwright suite.
+
+Dependabot tracks the `cargo` ecosystem and the `npm` ecosystem used by `tests/e2e`.
+
+## External resources
+
+* [Juncto Handbook](https://juncto.github.io/handbook/) — user and developer documentation
+* [Community Forum](https://community.juncto.org/) — questions and support
+* [Contributing Guidelines](https://juncto.github.io/handbook/docs/dev-guide/dev-guide-contributing/) — the upstream contribution process

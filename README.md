@@ -1,99 +1,229 @@
 # <p align="center">Juncto</p>
 
-Juncto is a set of Open Source projects which empower users to use and deploy
-video conferencing platforms with state-of-the-art video quality and features.
-
-<hr />
+<p align="center">
+  <strong>Self-hosted WebRTC video conferencing, written entirely in Rust.</strong><br />
+  Leptos (WASM) frontend &middot; Axum backend &middot; shared Serde types &mdash; one Cargo workspace.
+</p>
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/juncto/juncto/master/readme-img1.png" width="900" />
+  <img src="./tests/screenshots/03-room.png" alt="Juncto meeting room" width="900" />
 </p>
 
 <hr />
 
-Amongst others here are the main features Juncto offers:
+## Why Juncto
 
-* Support for all current browsers
-* Mobile applications
-* Web and native SDKs for integration
-* HD audio and video
-* Content sharing
-* Raise hand and reactions
-* Chat with private conversations
-* Polls
-* Virtual backgrounds
+Juncto is an open-source video conferencing platform you can run yourself. The whole
+stack &mdash; server, client and the wire types between them &mdash; is one Rust
+workspace compiled to WebAssembly and a native binary. There is no JavaScript build
+step, no separate SPA bundle to deploy, and no second language to keep in sync.
 
-And many more!
+* **One language, one workspace.** The client, the server and the shared message types
+  are Rust crates in the same repository.
+* **No JS bundler.** The Leptos client is compiled to `wasm32-unknown-unknown` and served
+  straight from `frontend/pkg` by the Axum server.
+* **Type-safe protocol.** Every WebSocket message is a `serde` enum in the `shared`
+  crate, so a client and server mismatch is a compile error, not a runtime surprise.
+* **Self-contained deployment.** A single binary plus a directory of static assets.
 
-## Using Juncto
+## Features
 
-Using Juncto is straightforward, as it's browser based. Head over to [meet.juncto.net](https://meet.juncto.net) and give it a try. It's scalable and free to use. All you need is a Google, Facebook or GitHub account in order to start a meeting. All browsers are supported!
+| Area | What you get |
+|---|---|
+| Conferencing | HD audio/video, WebRTC mesh, mute/camera controls, raise hand |
+| Layout | Tile view, speaker view with spotlight, filmstrip thumbnails, picture-in-picture |
+| Collaboration | Whiteboard, polls (create/active/history), shared document, Etherpad, shared video, GIF chat |
+| Messaging | Public and private chat, typing indicators, chat history for late joiners, reactions |
+| Sharing | Screen share, file sharing with chat attachments, local recording |
+| Security | Room lock with optional password, lobby / waiting room, E2EE indicator, visitor mode |
+| Personalisation | Virtual backgrounds, device selection, dynamic branding, noise suppression toggle |
+| Accessibility | Keyboard shortcuts, i18n (EN/ID), audio-level and connection-quality indicators |
+| Integrations | Calendar list, Salesforce panel, iframe embed code, static dial-in info |
+| Rooms | Moderator controls, breakout rooms, remote control, speaker stats, analytics, presence |
 
-Using mobile? No problem, you can either use your mobile web browser or our fully-featured
-mobile apps:
+Unsupported-browser detection and a rejoin overlay keep the experience predictable when a
+network drops or WebRTC is unavailable.
 
-| Android | Android (F-Droid) | iOS |
-|:-:|:-:|:-:|
-| [<img src="resources/img/google-play-badge.png" height="50">](https://play.google.com/store/apps/details?id=org.juncto.meet) | [<img src="resources/img/f-droid-badge.png" height="50">](https://f-droid.org/packages/org.juncto.meet/) | [<img src="resources/img/appstore-badge.png" height="50">](https://itunes.apple.com/us/app/juncto/id1165103905) |
+## Screenshots
 
-If you are feeling adventurous and want to get an early scoop of the features as they are being
-developed you can also sign up for our open beta testing here:
+Every view below is captured automatically from the running application by
+`tests/e2e/screenshot-gallery.spec.ts`. See [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md)
+for how the gallery and the contrast audit work.
 
-* [Android](https://play.google.com/apps/testing/org.juncto.meet)
-* [iOS](https://testflight.apple.com/join/isy6ja7S)
+### Joining a meeting
 
-## Running your own instance
+| Landing page | Pre-join | Waiting room |
+|---|---|---|
+| ![Landing page](./tests/screenshots/01-home.png) | ![Pre-join screen](./tests/screenshots/02-prejoin.png) | ![Lobby](./tests/screenshots/35-lobby.png) |
 
-The web client in this repository now lives in [`rust-app/`](rust-app/), a Leptos (WASM) frontend
-backed by an Axum server. The previous React/Webpack implementation has been removed.
+### In the meeting
+
+| Meeting room | Participants | Chat |
+|---|---|---|
+| ![Meeting room](./tests/screenshots/03-room.png) | ![Participants panel](./tests/screenshots/04-participants.png) | ![Chat panel](./tests/screenshots/05-chat.png) |
+
+| Notifications | Speaker stats | Whiteboard |
+|---|---|---|
+| ![Notifications](./tests/screenshots/13-notifications.png) | ![Speaker stats](./tests/screenshots/17-speaker-stats.png) | ![Whiteboard](./tests/screenshots/14-whiteboard.png) |
+
+| Breakout rooms | Reactions | Subtitles |
+|---|---|---|
+| ![Breakout rooms](./tests/screenshots/31-breakout-rooms.png) | ![Reactions](./tests/screenshots/28-reactions.png) | ![Subtitles](./tests/screenshots/29-subtitles.png) |
+
+| Context menu | File sharing | Visitor mode |
+|---|---|---|
+| ![Context menu](./tests/screenshots/30-context-menu.png) | ![File sharing](./tests/screenshots/27-files.png) | ![Visitor mode](./tests/screenshots/34-visitor-mode.png) |
+
+### Settings
+
+| Profile | Devices | Integrations |
+|---|---|---|
+| ![Settings profile](./tests/screenshots/06-settings-profile.png) | ![Settings devices](./tests/screenshots/07-settings-devices.png) | ![Settings integrations](./tests/screenshots/08-settings-integrations.png) |
+
+| More | Branding | Virtual background |
+|---|---|---|
+| ![Settings more](./tests/screenshots/09-settings-more.png) | ![Settings branding](./tests/screenshots/10-settings-branding.png) | ![Virtual background](./tests/screenshots/15-virtual-background.png) |
+
+### Collaboration and dialogs
+
+| Polls &mdash; create | Polls &mdash; active | Invite people |
+|---|---|---|
+| ![Create a poll](./tests/screenshots/11-polls-create.png) | ![Active poll](./tests/screenshots/12-polls-active.png) | ![Invite people](./tests/screenshots/18-invite.png) |
+
+| Share video | Embed meeting | Calendar |
+|---|---|---|
+| ![Share video](./tests/screenshots/19-share-video.png) | ![Embed meeting](./tests/screenshots/20-embed-meeting.png) | ![Calendar](./tests/screenshots/25-calendar.png) |
+
+| Shared document | Authentication | Feedback |
+|---|---|---|
+| ![Shared document](./tests/screenshots/26-etherpad.png) | ![Authentication](./tests/screenshots/24-authentication.png) | ![Feedback](./tests/screenshots/23-feedback.png) |
+
+| Dial-in info | Salesforce | Remote control |
+|---|---|---|
+| ![Dial-in info](./tests/screenshots/21-dial-in.png) | ![Salesforce](./tests/screenshots/22-salesforce.png) | ![Remote control](./tests/screenshots/32-remote-control.png) |
+
+| Keyboard shortcuts | Reconnect overlay | Chat open (full view) |
+|---|---|---|
+| ![Keyboard shortcuts](./tests/screenshots/16-shortcuts.png) | ![Reconnect overlay](./tests/screenshots/36-rejoin-overlay.png) | ![Room with chat open](./tests/screenshots/33-room-chat-open.png) |
+
+### Mobile (420 &times; 860)
+
+| Landing page | Pre-join | In the meeting |
+|---|---|---|
+| ![Mobile landing](./tests/screenshots/37-mobile-home.png) | ![Mobile pre-join](./tests/screenshots/38-mobile-prejoin.png) | ![Mobile meeting room](./tests/screenshots/39-mobile-room.png) |
+
+| Chat panel | Settings |
+|---|---|
+| ![Mobile chat](./tests/screenshots/40-mobile-chat.png) | ![Mobile settings](./tests/screenshots/41-mobile-settings.png) |
+
+## Quick start
+
+### Prerequisites
+
+* A Rust toolchain (stable, 1.75+) with the WebAssembly target:
+  `rustup target add wasm32-unknown-unknown`
+* `wasm-bindgen-cli` at the version pinned in `Cargo.lock`
+  (`cargo install wasm-bindgen-cli`)
+* Node.js 18+ for the Playwright end-to-end suite
+* On Linux, `pkg-config` and OpenSSL development headers
+  (`apt-get install pkg-config libssl-dev`) so the host-side frontend build can link
+
+### Build and run
 
 ```sh
-cd rust-app
-bash build.sh        # builds the WASM frontend and copies static assets
-cd backend && cargo run --release   # serves the app on :3000
+bash build.sh                     # compile the WASM client into frontend/pkg
+cargo run -p backend              # serve the app on http://localhost:3000
 ```
 
-Rust unit tests and the single consolidated Playwright suite:
+`build.sh` compiles the Leptos client for `wasm32-unknown-unknown`, runs
+`wasm-bindgen` to emit JS/WASM bindings into `frontend/pkg`, and copies
+`frontend/index.html` next to them. The Axum server serves that directory plus
+`backend/static`. Open `http://localhost:3000`, type a room name, and join.
+
+The `Makefile` wraps the same steps:
 
 ```sh
-cd rust-app && cargo test --workspace             # unit tests
-cd rust-app/tests/e2e && npx playwright test      # end-to-end parity suite
+make build        # same as bash build.sh
+make test         # cargo test --workspace
+make test-e2e     # build + npm ci + Playwright
+make clean        # cargo clean
 ```
 
-Legacy guidance below applies to the removed legacy React implementation and is
-kept for historical reference.
+### Verify your change
 
-## Juncto as a Service
+Run everything from the repository root:
 
-If you like the branding capabilities of running your own instance but you'd like
-to avoid dealing with the complexity of monitoring, scaling and updates, JunctoService might be
-for you.
+```sh
+cargo fmt --all -- --check                    # formatting
+cargo clippy --workspace -- -D warnings       # lints, warnings are errors
+cargo test --workspace                        # 102 unit tests
+cd tests/e2e && npx playwright test           # end-to-end parity + visual suite
+```
 
-[Juncto Juncto as a Service (JunctoService)](https://jaas.Juncto.vc) is an enterprise-ready video meeting platform that allows developers, organizations and businesses to easily build and deploy video solutions. With Juncto as a Service we now give you all the power of Juncto running on our global platform so you can focus on building secure and branded video experiences.
+The Playwright suite boots the real backend and captures screenshots to
+`tests/screenshots/`, so a failing run also tells you whether the UI regressed visually.
+
+## Repository layout
+
+```
+.
+├── backend/          Axum server: router, WebSocket handler, feature endpoints, static assets
+│   ├── src/handlers/     chat, polls, whiteboard, breakout rooms, … (one module per feature)
+│   └── static/           styles.css and client-side assets
+├── frontend/         Leptos client-side-rendered WASM app
+│   ├── src/              feature modules (chat.rs, polls.rs, whiteboard.rs, …)
+│   └── src/components_ui/ reusable dialogs and panels
+├── shared/           Serde types exchanged over the WebSocket
+├── tests/
+│   ├── e2e/              Playwright suites (parity, visual gallery, contrast audit)
+│   └── screenshots/      generated PNG gallery referenced by this README
+├── docs/             architecture, development and feature notes
+├── build.sh          WASM + bindings build
+├── Makefile          build / test / test-e2e / clean
+└── Cargo.toml        the workspace manifest
+```
 
 ## Documentation
 
-All the Juncto documentation is available in [the handbook](https://juncto.github.io/handbook/).
+| Document | Contents |
+|---|---|
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Crates, message flow, WebRTC model, static asset resolution |
+| [docs/DEVELOPMENT.md](./docs/DEVELOPMENT.md) | Local setup, build loop, testing, screenshot gallery |
+| [docs/FEATURES.md](./docs/FEATURES.md) | Feature-by-feature status and known limitations |
+| [MIGRATION.md](./MIGRATION.md) | The React → Rust cutover: gap matrix and exit criteria |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute, coding standards, commit conventions |
+| [SECURITY.md](./SECURITY.md) | How to report a vulnerability |
+
+## Configuration
+
+The server listens on `0.0.0.0:3000`; that address is currently compiled in, so change it
+in `backend/src/main.rs` and rebuild if you need a different port.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MOCK_AUTH_USER` | `admin` | Username accepted by the demo authentication dialog |
+| `MOCK_AUTH_PASS` | `admin123` | Password accepted by the demo authentication dialog |
+
+Static paths are resolved against `CARGO_MANIFEST_DIR`, so the binary serves the client
+correctly no matter which directory you launch it from.
 
 ## Security
 
-For a comprehensive description of all Juncto's security aspects, please check [this link](https://juncto.org/security).
+Room-level protection is available today: room lock with an optional password, a lobby
+that requires host approval before anyone enters, visitor mode, and an E2EE status
+indicator with per-participant key-exchange signalling.
 
-For a detailed description of Juncto's End-to-End Encryption (E2EE) implementation,
-please check [this link](https://juncto.org/e2ee-whitepaper/).
-
-For information on reporting security vulnerabilities in Juncto, see [SECURITY.md](./SECURITY.md).
+For reporting vulnerabilities, see [SECURITY.md](./SECURITY.md).
 
 ## Contributing
 
-If you are looking to contribute to Juncto, first of all, thank you! Please
-see our [guidelines for contributing](CONTRIBUTING.md).
+Contributions are welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) for the workflow,
+commit conventions and the checks your pull request must pass.
 
-<br />
 <br />
 
 <footer>
 <p align="center" style="font-size: smaller;">
-Built with ❤️ by the Juncto team at <a href="https://Juncto.com" target="_blank">Juncto</a> and our community.
+Built with ❤️ by the Juncto maintainers and community.
 </p>
 </footer>

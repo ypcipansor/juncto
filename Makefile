@@ -1,4 +1,3 @@
-RUST_APP = rust-app
 CARGO = cargo
 NPM = npm
 
@@ -6,15 +5,15 @@ NPM = npm
 
 all: build
 
-# Delegate to the Rust workspace (Leptos WASM frontend + Axum backend).
+# Rust workspace root: Leptos (WASM) frontend + Axum backend + shared types.
 build:
-	cd $(RUST_APP) && bash build.sh
+	bash build.sh
 
 test:
-	cd $(RUST_APP) && $(CARGO) test --workspace
+	$(CARGO) test --workspace
 
 test-e2e: build
-	cd $(RUST_APP)/tests/e2e && $(NPM) ci && npx playwright test
+	cd tests/e2e && $(NPM) ci && npx playwright test
 
 clean:
-	cd $(RUST_APP) && $(CARGO) clean
+	$(CARGO) clean

@@ -1,3 +1,0 @@
-doc/debian/juncto-prosody/prosody.cfg.lua-junctobridge.example   /usr/share/juncto-prosody/
-doc/debian/juncto-prosody/jaas.cfg.lua                  /usr/share/juncto-prosody/
-resources/prosody-plugins/                                  /usr/share/juncto/

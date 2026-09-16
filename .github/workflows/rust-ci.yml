@@ -6,20 +6,29 @@ on:
   pull_request:
     branches: [ "master", "main" ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-and-test:
-    name: Build and Test Rust App
+  checks:
+    name: Format, Lint and Test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+    - name: Checkout
+      uses: actions/checkout@v7
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         targets: wasm32-unknown-unknown
+        components: rustfmt, clippy
 
     - name: Cache Cargo
       uses: actions/cache@v6
@@ -27,7 +36,41 @@ jobs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-          rust-app/target
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+
+    - name: Lint with Clippy
+      run: cargo clippy --workspace -- -D warnings
+
+    - name: Run Unit Tests
+      run: cargo test --workspace
+
+  e2e:
+    name: Build and Run E2E Tests
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+        components: rustfmt, clippy
+
+    - name: Cache Cargo
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-
@@ -38,25 +81,8 @@ jobs:
             cargo install -f wasm-bindgen-cli --version 0.2.122
         fi
 
-    - name: Check Backend and Shared
-      run: |
-        cd rust-app
-        cargo check -p backend -p shared
-
     - name: Build Frontend
-      run: |
-        cd rust-app
-        ./build.sh
-
-    - name: Run Unit Tests
-      run: |
-        cd rust-app
-        cargo test --workspace
-
-    - name: Lint with Clippy
-      run: |
-        cd rust-app
-        cargo clippy --workspace -- -D warnings
+      run: ./build.sh
 
     - name: Setup Node.js
       uses: actions/setup-node@v7
@@ -65,11 +91,11 @@ jobs:
 
     - name: Install Playwright
       run: |
-        cd rust-app/tests/e2e
+        cd tests/e2e
         npm ci || npm install
         npx playwright install --with-deps
 
     - name: Run E2E Tests
       run: |
-        cd rust-app/tests/e2e
+        cd tests/e2e
         npx playwright test
