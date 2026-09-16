@@ -1,6 +1,9 @@
 use crate::components_ui::audio_level_indicator::AudioLevelIndicator;
 use crate::components_ui::context_menu::VideoContextMenu;
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
+
+use crate::cleanup::on_cleanup_local;
 use shared::Participant;
 use std::collections::{HashMap, HashSet};
 use wasm_bindgen::JsCast;
@@ -66,39 +69,39 @@ pub fn VideoGrid(
     #[prop(optional)] on_set_voltage: Option<Callback<(String, f64)>>,
     #[prop(optional)] is_host: Option<Signal<bool>>,
 ) -> impl IntoView {
-    let video_ref = create_node_ref::<html::Video>();
-    let screen_ref = create_node_ref::<html::Video>();
+    let video_ref = NodeRef::<html::Video>::new();
+    let screen_ref = NodeRef::<html::Video>::new();
 
-    create_effect(move |_| {
-        if let Some(stream) = local_stream.get() {
-            if let Some(video_el) = video_ref.get() {
-                video_el.set_src_object(Some(&stream));
-                let _ = video_el.play();
-            }
+    Effect::new(move |_| {
+        if let Some(stream) = local_stream.get()
+            && let Some(video_el) = video_ref.get()
+        {
+            video_el.set_src_object(Some(&stream));
+            let _ = video_el.play();
         }
     });
 
-    create_effect(move |_| {
-        if let Some(stream) = local_screen_stream.get() {
-            if let Some(video_el) = screen_ref.get() {
-                video_el.set_src_object(Some(&stream));
-                let _ = video_el.play();
-            }
+    Effect::new(move |_| {
+        if let Some(stream) = local_screen_stream.get()
+            && let Some(video_el) = screen_ref.get()
+        {
+            video_el.set_src_object(Some(&stream));
+            let _ = video_el.play();
         }
     });
 
     // Context menu state (opened on right-click of a remote tile)
-    let (menu_open, set_menu_open) = create_signal(false);
-    let (menu_x, set_menu_x) = create_signal(0i32);
-    let (menu_y, set_menu_y) = create_signal(0i32);
-    let (menu_target, set_menu_target) = create_signal(Option::<String>::None);
+    let (menu_open, set_menu_open) = signal(false);
+    let (menu_x, set_menu_x) = signal(0i32);
+    let (menu_y, set_menu_y) = signal(0i32);
+    let (menu_target, set_menu_target) = signal(Option::<String>::None);
 
-    let on_kick_sv = on_kick_participant.map(|cb| store_value(cb));
-    let on_pin_sv = on_pin_participant.map(|cb| store_value(cb));
-    let on_volume_sv = on_set_voltage.map(|cb| store_value(cb));
+    let on_kick_sv = on_kick_participant.map(|cb| StoredValue::new(cb));
+    let on_pin_sv = on_pin_participant.map(|cb| StoredValue::new(cb));
+    let on_volume_sv = on_set_voltage.map(|cb| StoredValue::new(cb));
 
     // Prepare grid items: remote users + remote screens + shared video
-    let grid_items = create_memo(move |_| {
+    let grid_items = Memo::new(move |_| {
         let mut items = Vec::new();
         if let Some(url) = shared_video_url.get() {
             items.push(GridItem::SharedVideo(url));
@@ -122,14 +125,13 @@ pub fn VideoGrid(
             // Push the spotlighted participant first (rendered as the main tile),
             // then push the remaining remote participants so they appear as
             // thumbnails (filmstrip).
-            if let Some(sid) = &spotlight_id {
-                if let Some(p) = list.iter().find(|p| &p.id == sid) {
-                    if Some(p.id.clone()) != my_id_val {
-                        items.push(GridItem::User(p.clone()));
-                        if p.is_sharing_screen {
-                            items.push(GridItem::RemoteScreen(p.clone()));
-                        }
-                    }
+            if let Some(sid) = &spotlight_id
+                && let Some(p) = list.iter().find(|p| &p.id == sid)
+                && Some(p.id.clone()) != my_id_val
+            {
+                items.push(GridItem::User(p.clone()));
+                if p.is_sharing_screen {
+                    items.push(GridItem::RemoteScreen(p.clone()));
                 }
             }
 
@@ -158,7 +160,7 @@ pub fn VideoGrid(
         items
     });
 
-    let (layout_open, set_layout_open) = create_signal(false);
+    let (layout_open, set_layout_open) = signal(false);
     let layout_icon_label = |l: &str| {
         if l == "spotlight" {
             "Speaker view"
@@ -181,11 +183,11 @@ pub fn VideoGrid(
                     <div class="layout-menu">
                         <button
                             class=move || format!("layout-option {}", if layout.get() == "grid" { "active" } else { "" })
-                            on:click=move |_| { on_set_layout.call("grid".to_string()); set_layout_open.set(false); }
+                            on:click=move |_| { on_set_layout.run("grid".to_string()); set_layout_open.set(false); }
                         >"Tile view"</button>
                         <button
                             class=move || format!("layout-option {}", if layout.get() == "spotlight" { "active" } else { "" })
-                            on:click=move |_| { on_set_layout.call("spotlight".to_string()); set_layout_open.set(false); }
+                            on:click=move |_| { on_set_layout.run("spotlight".to_string()); set_layout_open.set(false); }
                         >"Speaker view"</button>
                     </div>
                 </Show>
@@ -205,12 +207,11 @@ pub fn VideoGrid(
                             if let Some(video) = screen_ref.get() {
                                 let js_video: &wasm_bindgen::JsValue = video.as_ref();
                                 let prop = wasm_bindgen::JsValue::from_str("requestPictureInPicture");
-                                if let Ok(func) = js_sys::Reflect::get(js_video, &prop) {
-                                    if let Some(func) = func.dyn_ref::<js_sys::Function>() {
+                                if let Ok(func) = js_sys::Reflect::get(js_video, &prop)
+                                    && let Some(func) = func.dyn_ref::<js_sys::Function>() {
                                         let promise = func.call0(js_video);
                                         let _ = promise;
                                     }
-                                }
                             }
                         }
                         class="pip-btn"
@@ -253,7 +254,7 @@ pub fn VideoGrid(
                             }).collect_view()}
                         </div>
                         </div>
-                    }.into_view()
+                    }.into_any()
                 } else {
                     view! {
                         <div class="video-grid grid">
@@ -266,7 +267,7 @@ pub fn VideoGrid(
                                 )
                             }).collect_view()}
                         </div>
-                    }.into_view()
+                    }.into_any()
                 }
             }}
 
@@ -283,26 +284,23 @@ pub fn VideoGrid(
                     target.and_then(|t| vols.as_ref().and_then(|m| m.get(&t).copied())).unwrap_or(1.0)
                 })
                 on_pin=Callback::new(move |_| {
-                    if let Some(t) = menu_target.get_untracked() {
-                        if let Some(cb) = on_pin_sv {
+                    if let Some(t) = menu_target.get_untracked()
+                        && let Some(cb) = on_pin_sv {
                             let pinned_now = pinned_participant.and_then(|s| s.get());
-                            cb.get_value().call(if pinned_now == Some(t.clone()) { None } else { Some(t) });
+                            cb.get_value().run(if pinned_now == Some(t.clone()) { None } else { Some(t) });
                         }
-                    }
                 })
                 on_kick=Callback::new(move |_| {
-                    if let Some(t) = menu_target.get_untracked() {
-                        if let Some(cb) = on_kick_sv {
-                            cb.get_value().call(t);
+                    if let Some(t) = menu_target.get_untracked()
+                        && let Some(cb) = on_kick_sv {
+                            cb.get_value().run(t);
                         }
-                    }
                 })
                 on_volume=Callback::new(move |v: f64| {
-                    if let Some(t) = menu_target.get_untracked() {
-                        if let Some(cb) = on_volume_sv {
-                            cb.get_value().call((t, v));
+                    if let Some(t) = menu_target.get_untracked()
+                        && let Some(cb) = on_volume_sv {
+                            cb.get_value().run((t, v));
                         }
-                    }
                 })
                 on_close=Callback::new(move |_| set_menu_open.set(false))
             />
@@ -319,7 +317,7 @@ fn render_local_user_tile(
     speaking_peers: ReadSignal<HashSet<String>>,
     is_flipped: Option<Signal<bool>>,
     video_ref: NodeRef<html::Video>,
-) -> View {
+) -> AnyView {
     view! {
         <div class="video-card local-video">
             <Show
@@ -345,8 +343,8 @@ fn render_local_user_tile(
                             })
                         }).unwrap_or_else(|| "Me".to_string())
                     });
-                    let (avatar_failed, set_avatar_failed) = create_signal(false);
-                    create_effect(move |_| {
+                    let (avatar_failed, set_avatar_failed) = signal(false);
+                    Effect::new(move |_| {
                         let _ = avatar_url.get();
                         set_avatar_failed.set(false);
                     });
@@ -381,12 +379,11 @@ fn render_local_user_tile(
                         if let Some(video) = video_ref.get() {
                             let js_video: &wasm_bindgen::JsValue = video.as_ref();
                             let prop = wasm_bindgen::JsValue::from_str("requestPictureInPicture");
-                            if let Ok(func) = js_sys::Reflect::get(js_video, &prop) {
-                                if let Some(func) = func.dyn_ref::<js_sys::Function>() {
+                            if let Ok(func) = js_sys::Reflect::get(js_video, &prop)
+                                && let Some(func) = func.dyn_ref::<js_sys::Function>() {
                                     let promise = func.call0(js_video);
                                     let _ = promise;
                                 }
-                            }
                         }
                     }
                     class="pip-btn"
@@ -414,7 +411,7 @@ fn render_local_user_tile(
                 </Show>
             </div>
         </div>
-    }.into_view()
+    }.into_any()
 }
 
 /// Renders one remote grid item (remote user / remote screen / shared video).
@@ -434,7 +431,7 @@ fn render_remote_item(
     set_menu_x: WriteSignal<i32>,
     set_menu_y: WriteSignal<i32>,
     set_menu_target: WriteSignal<Option<String>>,
-) -> View {
+) -> AnyView {
     match item {
         GridItem::SharedVideo(url) => {
             let video_id = if url.contains("youtube.com") || url.contains("youtu.be") {
@@ -459,13 +456,13 @@ fn render_remote_item(
                         width="100%"
                         height="100%"
                         src=embed_url
-                        frameborder="0"
+                        style="border: 0;"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen
                     ></iframe>
                     <div class="name-tag">"Shared Video"</div>
                 </div>
-            }.into_view()
+            }.into_any()
         }
         _ => {
             let p = item.participant().unwrap().clone();
@@ -531,16 +528,16 @@ fn render_remote_item(
                         .and_then(|pp| pp.avatar_url.clone())
                 })
             });
-            let (avatar_failed, set_avatar_failed) = create_signal(false);
-            create_effect(move |_| {
+            let (avatar_failed, set_avatar_failed) = signal(false);
+            Effect::new(move |_| {
                 let _ = avatar_url_sig.get();
                 set_avatar_failed.set(false);
             });
 
             let id_speak = id.clone();
-            let is_speaking = create_memo(move |_| speaking_peers.get().contains(&id_speak));
-            let (audio_level_sig, set_audio_level_sig) = create_signal(0.0f64);
-            create_effect(move |_| {
+            let is_speaking = Memo::new(move |_| speaking_peers.get().contains(&id_speak));
+            let (audio_level_sig, set_audio_level_sig) = signal(0.0f64);
+            Effect::new(move |_| {
                 if is_speaking.get() {
                     let window = web_sys::window().unwrap();
                     let cb = wasm_bindgen::closure::Closure::wrap(Box::new(move || {
@@ -554,7 +551,7 @@ fn render_remote_item(
                             200,
                         )
                         .unwrap();
-                    on_cleanup(move || {
+                    on_cleanup_local(move || {
                         let window = web_sys::window().unwrap();
                         window.clear_interval_with_handle(interval_id);
                         drop(cb);
@@ -564,7 +561,7 @@ fn render_remote_item(
                 }
             });
 
-            let remote_video_ref = create_node_ref::<html::Video>();
+            let remote_video_ref = NodeRef::<html::Video>::new();
             let stream_signal = Signal::derive(move || {
                 remote_streams.with(|map| {
                     if let Some(streams) = map.get(&id_for_stream) {
@@ -581,10 +578,9 @@ fn render_remote_item(
                                         if let Ok(val) = js_sys::Reflect::get(
                                             &settings,
                                             &"displaySurface".into(),
-                                        ) {
-                                            if !val.is_undefined() {
-                                                return true;
-                                            }
+                                        ) && !val.is_undefined()
+                                        {
+                                            return true;
                                         }
                                     }
                                 }
@@ -599,12 +595,12 @@ fn render_remote_item(
                     }
                 })
             });
-            create_effect(move |_| {
-                if let Some(stream) = stream_signal.get() {
-                    if let Some(video_el) = remote_video_ref.get() {
-                        video_el.set_src_object(Some(&stream));
-                        let _ = video_el.play();
-                    }
+            Effect::new(move |_| {
+                if let Some(stream) = stream_signal.get()
+                    && let Some(video_el) = remote_video_ref.get()
+                {
+                    video_el.set_src_object(Some(&stream));
+                    let _ = video_el.play();
                 }
             });
 
@@ -654,7 +650,7 @@ fn render_remote_item(
                         if is_screen {
                             view! {
                                 <div class="screen-placeholder">"Waiting for screen..."</div>
-                            }.into_view()
+                            }.into_any()
                         } else {
                             view! {
                                 <div class="avatar-container">
@@ -669,7 +665,7 @@ fn render_remote_item(
                                         />
                                     </Show>
                                 </div>
-                            }.into_view()
+                            }.into_any()
                         }
                     }>
                         <video
@@ -684,12 +680,11 @@ fn render_remote_item(
                             if let Some(video) = remote_video_ref.get() {
                                 let js_video: &wasm_bindgen::JsValue = video.as_ref();
                                 let prop = wasm_bindgen::JsValue::from_str("requestPictureInPicture");
-                                if let Ok(func) = js_sys::Reflect::get(js_video, &prop) {
-                                    if let Some(func) = func.dyn_ref::<js_sys::Function>() {
+                                if let Ok(func) = js_sys::Reflect::get(js_video, &prop)
+                                    && let Some(func) = func.dyn_ref::<js_sys::Function>() {
                                         let promise = func.call0(js_video);
                                         let _ = promise;
                                     }
-                                }
                             }
                         }
                         class="pip-btn"
@@ -714,7 +709,7 @@ fn render_remote_item(
                         </Show>
                     </div>
                 </div>
-            }.into_view()
+            }.into_any()
         }
     }
 }

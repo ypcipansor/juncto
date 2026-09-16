@@ -238,10 +238,10 @@ pub fn move_participant_to_room(
     }
 
     // Validate room exists if not None
-    if let Some(rid) = &room_id {
-        if !state.breakout_rooms.lock().unwrap().contains_key(rid) {
-            return Err("Breakout room not found".to_string());
-        }
+    if let Some(rid) = &room_id
+        && !state.breakout_rooms.lock().unwrap().contains_key(rid)
+    {
+        return Err("Breakout room not found".to_string());
     }
 
     {

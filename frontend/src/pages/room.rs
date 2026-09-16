@@ -22,15 +22,16 @@ use crate::salesforce::LinkSalesforceDialog;
 use crate::settings::SettingsDialog;
 use crate::shortcuts::{KeyboardShortcuts, ShortcutsDialog};
 use crate::speaker_stats::SpeakerStatsDialog;
-use crate::state::{use_room_state, RoomConnectionState};
+use crate::state::{RoomConnectionState, use_room_state};
 use crate::toolbox::Toolbox;
 use crate::virtual_background::VirtualBackgroundDialog;
 use crate::whiteboard::Whiteboard;
 use gloo_timers::callback::Interval;
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::hooks::use_params_map;
 use wasm_bindgen::JsCast;
 
+use crate::cleanup::on_cleanup_local;
 use crate::deeplink::DeepLinking;
 use crate::power_monitor::PowerMonitor;
 use crate::remote_control::RemoteControlLayer;
@@ -40,7 +41,7 @@ pub fn Room() -> impl IntoView {
     let params = use_params_map();
     let room_id = move || {
         params.with(|params| {
-            let id = params.get("id").cloned().unwrap_or_default();
+            let id = params.get("id").unwrap_or_default();
             urlencoding::decode(&id)
                 .map(|s| s.into_owned())
                 .unwrap_or(id)
@@ -48,9 +49,9 @@ pub fn Room() -> impl IntoView {
     };
 
     let state = use_room_state();
-    let (show_shared_video_dialog, set_show_shared_video_dialog) = create_signal(false);
-    let (show_invite, set_show_invite) = create_signal(false);
-    let (show_embed, set_show_embed) = create_signal(false);
+    let (show_shared_video_dialog, set_show_shared_video_dialog) = signal(false);
+    let (show_invite, set_show_invite) = signal(false);
+    let (show_embed, set_show_embed) = signal(false);
     // Side panels are mutually exclusive; at most one is open at a time to
     // avoid squeezing/overlapping the stage (esp. on narrow viewports).
     // Open chat by default on desktop, but start closed on narrow viewports
@@ -60,7 +61,7 @@ pub fn Room() -> impl IntoView {
         .and_then(|v| v.as_f64())
         .is_some_and(|w| w <= 768.0);
     let (active_panel, set_active_panel) =
-        create_signal(if narrow_viewport { None } else { Some("chat") });
+        signal(if narrow_viewport { None } else { Some("chat") });
     let show_chat = Signal::derive(move || active_panel.get() == Some("chat"));
     let show_participants = Signal::derive(move || active_panel.get() == Some("participants"));
     let show_files = Signal::derive(move || active_panel.get() == Some("files"));
@@ -70,8 +71,8 @@ pub fn Room() -> impl IntoView {
     let toggle_chat_cb = Callback::new(move |_| toggle_panel("chat"));
     let toggle_participants_cb = Callback::new(move |_| toggle_panel("participants"));
     let toggle_files_cb = Callback::new(move |_| toggle_panel("files"));
-    let (show_dial_in, set_show_dial_in) = create_signal(false);
-    let (show_salesforce, set_show_salesforce) = create_signal(false);
+    let (show_dial_in, set_show_dial_in) = signal(false);
+    let (show_salesforce, set_show_salesforce) = signal(false);
 
     let invite_url = Signal::derive(move || {
         if let Some(window) = web_sys::window() {
@@ -111,7 +112,7 @@ pub fn Room() -> impl IntoView {
 
     let state_end_meeting = state.end_meeting;
     let end_meeting_and_leave = Callback::new(move |_| {
-        state_end_meeting.call(());
+        state_end_meeting.run(());
         set_timeout(
             move || {
                 if let Some(window) = web_sys::window() {
@@ -123,12 +124,12 @@ pub fn Room() -> impl IntoView {
     });
 
     // Meeting Timer
-    let (elapsed_time, set_elapsed_time) = create_signal(0u32);
-    create_effect(move |_| {
+    let (elapsed_time, set_elapsed_time) = signal(0u32);
+    Effect::new(move |_| {
         let handle = Interval::new(1000, move || {
             set_elapsed_time.update(|t| *t += 1);
         });
-        on_cleanup(move || drop(handle));
+        on_cleanup_local(move || drop(handle));
     });
 
     let format_time = move || {
@@ -152,10 +153,10 @@ pub fn Room() -> impl IntoView {
                         })
                         password_required=state.password_required
                     />
-                }.into_view(),
+                }.into_any(),
                 RoomConnectionState::Lobby => view! {
                     <LobbyScreen announcement=state.lobby_announcement />
-                }.into_view(),
+                }.into_any(),
                 RoomConnectionState::Joined => view! {
                     <div class="room-container">
                         <RemoteControlLayer />
@@ -174,7 +175,7 @@ pub fn Room() -> impl IntoView {
                                 let toggle = state.toggle_local_recording;
                                 move |_| {
                                     let current = state.is_recording_locally.get_untracked();
-                                    toggle.call(!current);
+                                    toggle.run(!current);
                                 }
                             })
                         />
@@ -353,7 +354,7 @@ pub fn Room() -> impl IntoView {
                                                 if !has_url {
                                                     let rid = room_id_fn();
                                                     let pad_url = format!("https://etherpad.org/p/juncto-{}", rid);
-                                                    state.toggle_etherpad.call(Some(pad_url));
+                                                    state.toggle_etherpad.run(Some(pad_url));
                                                 }
                                                 // Optimistically show the panel immediately
                                                 state.set_show_etherpad.set(true);
@@ -371,11 +372,10 @@ pub fn Room() -> impl IntoView {
                                 _is_etherpad_active=Signal::derive(move || state.room_config.get().etherpad_url.is_some())
                                 is_etherpad_open=Signal::derive(move || state.show_etherpad.get())
                                 current_presence=Signal::derive(move || {
-                                    if let Some(my_id) = state.my_id.get() {
-                                        if let Some(me) = state.participants.get().iter().find(|p| p.id == my_id) {
+                                    if let Some(my_id) = state.my_id.get()
+                                        && let Some(me) = state.participants.get().iter().find(|p| p.id == my_id) {
                                             return me.presence.clone();
                                         }
-                                    }
                                     shared::PresenceStatus::Connected
                                 })
                                 on_set_presence=state.set_presence
@@ -389,7 +389,7 @@ pub fn Room() -> impl IntoView {
                                     let toggle = state.toggle_local_recording;
                                     move |_| {
                                         let current = state.is_recording_locally.get_untracked();
-                                        toggle.call(!current);
+                                        toggle.run(!current);
                                     }
                                 })
                                 on_polls=Callback::new(move |_| state.set_show_polls.set(true))
@@ -619,7 +619,7 @@ pub fn Room() -> impl IntoView {
                             })
                         />
                     </div>
-                }.into_view()
+                }.into_any()
             }}
         </div>
     }

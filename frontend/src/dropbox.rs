@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use shared::ClientMessage;
 
 #[derive(Clone)]
@@ -12,8 +12,7 @@ impl DropboxService {
     }
 
     pub fn save_file(&self, filename: String) {
-        self.send_signal
-            .call(ClientMessage::SaveToDropbox(filename));
+        self.send_signal.run(ClientMessage::SaveToDropbox(filename));
     }
 }
 
@@ -28,14 +27,16 @@ pub fn use_dropbox() -> DropboxService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use send_wrapper::SendWrapper;
     use shared::ClientMessage;
     use std::cell::RefCell;
     use std::rc::Rc;
 
     #[test]
     fn test_dropbox_service_save() {
-        let _runtime = create_runtime();
-        let last_msg = Rc::new(RefCell::new(None::<ClientMessage>));
+        let owner = Owner::new();
+        owner.set();
+        let last_msg = SendWrapper::new(Rc::new(RefCell::new(None::<ClientMessage>)));
         let last_msg_clone = last_msg.clone();
 
         let service = DropboxService::new(Callback::new(move |msg| {

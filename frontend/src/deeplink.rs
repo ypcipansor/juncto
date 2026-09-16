@@ -1,8 +1,8 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn DeepLinking() -> impl IntoView {
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(window) = web_sys::window() {
             let navigator = window.navigator();
             let user_agent = navigator.user_agent().unwrap_or_default().to_lowercase();

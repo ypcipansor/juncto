@@ -1,6 +1,6 @@
 use crate::i18n::t;
-use leptos::html::Canvas;
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
 use shared::DrawAction;
 use wasm_bindgen::JsCast;
 
@@ -11,10 +11,10 @@ pub fn Whiteboard(
     my_id: ReadSignal<Option<String>>,
     is_visitor: Signal<bool>,
 ) -> impl IntoView {
-    let canvas_ref = create_node_ref::<Canvas>();
-    let (is_drawing, set_is_drawing) = create_signal(false);
-    let (last_pos, set_last_pos) = create_signal(None::<(f64, f64)>);
-    let (color, set_color) = create_signal("#000000".to_string());
+    let canvas_ref = NodeRef::<html::Canvas>::new();
+    let (is_drawing, set_is_drawing) = signal(false);
+    let (last_pos, set_last_pos) = signal(None::<(f64, f64)>);
+    let (color, set_color) = signal("#000000".to_string());
 
     // Draw an action on the canvas
     let draw_on_canvas = move |action: &DrawAction| {
@@ -37,7 +37,7 @@ pub fn Whiteboard(
     };
 
     // React to history (both initial load and updates)
-    create_effect(move |last_len: Option<usize>| {
+    Effect::new(move |last_len: Option<usize>| {
         let actions = history.get();
         let len = actions.len();
         let start = last_len.unwrap_or(0);
@@ -46,12 +46,11 @@ pub fn Whiteboard(
         for i in start..len {
             if let Some(action) = actions.get(i) {
                 // Filter local echo only for live updates, not initial load
-                if !is_initial_load {
-                    if let Some(id) = my_id.get() {
-                        if action.sender_id == id {
-                            continue;
-                        }
-                    }
+                if !is_initial_load
+                    && let Some(id) = my_id.get()
+                    && action.sender_id == id
+                {
+                    continue;
                 }
                 draw_on_canvas(action);
             }
@@ -73,29 +72,29 @@ pub fn Whiteboard(
     };
 
     let on_mousemove = move |ev: web_sys::MouseEvent| {
-        if is_drawing.get() {
-            if let Some((start_x, start_y)) = last_pos.get() {
-                let end_x = ev.offset_x() as f64;
-                let end_y = ev.offset_y() as f64;
+        if is_drawing.get()
+            && let Some((start_x, start_y)) = last_pos.get()
+        {
+            let end_x = ev.offset_x() as f64;
+            let end_y = ev.offset_y() as f64;
 
-                let action = DrawAction {
-                    color: color.get(),
-                    width: 2.0,
-                    start_x,
-                    start_y,
-                    end_x,
-                    end_y,
-                    sender_id: my_id.get().unwrap_or_default(),
-                };
+            let action = DrawAction {
+                color: color.get(),
+                width: 2.0,
+                start_x,
+                start_y,
+                end_x,
+                end_y,
+                sender_id: my_id.get().unwrap_or_default(),
+            };
 
-                // Draw locally immediately
-                draw_on_canvas(&action);
+            // Draw locally immediately
+            draw_on_canvas(&action);
 
-                // Send to server
-                on_draw.call(action);
+            // Send to server
+            on_draw.run(action);
 
-                set_last_pos.set(Some((end_x, end_y)));
-            }
+            set_last_pos.set(Some((end_x, end_y)));
         }
     };
 

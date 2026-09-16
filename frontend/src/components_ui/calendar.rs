@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn CalendarList(
@@ -7,11 +7,11 @@ pub fn CalendarList(
     on_close: Callback<()>,
 ) -> impl IntoView {
     // Automatically refresh on mount
-    create_effect(move |_| {
+    Effect::new(move |_| {
         // Trigger fetch asynchronously to avoid potential sync borrow issues during mount
         set_timeout(
             move || {
-                on_refresh.call(());
+                on_refresh.run(());
             },
             std::time::Duration::from_millis(100),
         );
@@ -24,7 +24,7 @@ pub fn CalendarList(
                     <h3>"Upcoming Meetings"</h3>
                     <button
                         class="modal-close-btn"
-                        on:click=move |_| on_close.call(())
+                        on:click=move |_| on_close.run(())
                     >
                         "×"
                     </button>
@@ -36,7 +36,7 @@ pub fn CalendarList(
                             <div class="calendar-empty">
                                 "No upcoming events"
                             </div>
-                        }.into_view()
+                        }.into_any()
                     } else {
                         view! {
                             <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px;">
@@ -57,14 +57,14 @@ pub fn CalendarList(
                                     }
                                 }
                             </ul>
-                        }.into_view()
+                        }.into_any()
                     }}
                 </div>
 
                 <div style="display: flex; justify-content: flex-end;">
                     <button
                         class="btn btn-primary"
-                        on:click=move |_| on_refresh.call(())
+                        on:click=move |_| on_refresh.run(())
                     >
                         "Refresh"
                     </button>
@@ -80,8 +80,11 @@ mod tests {
 
     #[test]
     fn test_calendar_list_compiles() {
-        let _ = create_runtime();
-        let (events, _set_events) = create_signal::<Vec<String>>(Vec::new());
+        // `CalendarList` spawns an `Effect`, which requires a global executor.
+        let _ = any_spawner::Executor::init_futures_executor();
+        let owner = Owner::new();
+        owner.set();
+        let (events, _set_events) = signal::<Vec<String>>(Vec::new());
         let on_refresh = Callback::new(|_: ()| {});
         let on_close = Callback::new(|_: ()| {});
 

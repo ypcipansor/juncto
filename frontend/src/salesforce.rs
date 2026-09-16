@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::logging;
+use leptos::prelude::*;
 use shared::{ClientMessage, SalesforceConfig};
 
 #[derive(Clone)]
@@ -18,7 +19,7 @@ impl SalesforceService {
             object_type
         );
         self.send_signal
-            .call(ClientMessage::LinkSalesforce(SalesforceConfig {
+            .run(ClientMessage::LinkSalesforce(SalesforceConfig {
                 is_linked: true,
                 object_id: Some(object_id),
                 object_type: Some(object_type),
@@ -28,7 +29,7 @@ impl SalesforceService {
     pub fn unlink_object(&self) {
         logging::log!("SalesforceService: Unlinking");
         self.send_signal
-            .call(ClientMessage::LinkSalesforce(SalesforceConfig {
+            .run(ClientMessage::LinkSalesforce(SalesforceConfig {
                 is_linked: false,
                 object_id: None,
                 object_type: None,
@@ -51,10 +52,10 @@ pub fn LinkSalesforceDialog(
     #[prop(into)] config: Signal<SalesforceConfig>,
 ) -> impl IntoView {
     let service = use_salesforce();
-    let (object_id, set_object_id) = create_signal(String::new());
-    let (object_type, set_object_type) = create_signal("Lead".to_string());
+    let (object_id, set_object_id) = signal(String::new());
+    let (object_type, set_object_type) = signal("Lead".to_string());
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if show.get() {
             let current = config.get();
             set_object_id.set(current.object_id.unwrap_or_default());
@@ -62,8 +63,8 @@ pub fn LinkSalesforceDialog(
         }
     });
 
-    let service_sv = store_value(service);
-    let on_close_sv = store_value(on_close);
+    let service_sv = StoredValue::new(service);
+    let on_close_sv = StoredValue::new(on_close);
 
     view! {
         <Show when=move || show.get()>
@@ -71,7 +72,7 @@ pub fn LinkSalesforceDialog(
                 <div class="modal-content" style="width: 400px;">
                     <div class="modal-header">
                         <h3>"Salesforce Integration"</h3>
-                        <button class="modal-close-btn" on:click=move |_| on_close_sv.with_value(|cb| cb.call(()))>"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close_sv.with_value(|cb| cb.run(()))>"×"</button>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
@@ -106,7 +107,7 @@ pub fn LinkSalesforceDialog(
                                 class="btn btn-danger"
                                 on:click=move |_| {
                                     service_sv.with_value(|s| s.unlink_object());
-                                    on_close_sv.with_value(|cb| cb.call(()));
+                                    on_close_sv.with_value(|cb| cb.run(()));
                                 }
                             >
                                 "Unlink"
@@ -117,7 +118,7 @@ pub fn LinkSalesforceDialog(
                             class="btn btn-primary"
                             on:click=move |_| {
                                 service_sv.with_value(|s| s.link_object(object_id.get(), object_type.get()));
-                                on_close_sv.with_value(|cb| cb.call(()));
+                                on_close_sv.with_value(|cb| cb.run(()));
                             }
                             disabled=move || object_id.get().is_empty()
                         >
@@ -133,14 +134,16 @@ pub fn LinkSalesforceDialog(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use send_wrapper::SendWrapper;
     use shared::ClientMessage;
     use std::cell::RefCell;
     use std::rc::Rc;
 
     #[test]
     fn test_salesforce_service_link() {
-        let _runtime = create_runtime();
-        let last_msg = Rc::new(RefCell::new(None::<ClientMessage>));
+        let owner = Owner::new();
+        owner.set();
+        let last_msg = SendWrapper::new(Rc::new(RefCell::new(None::<ClientMessage>)));
         let last_msg_clone = last_msg.clone();
 
         let service = SalesforceService::new(Callback::new(move |msg| {
@@ -161,8 +164,9 @@ mod tests {
 
     #[test]
     fn test_salesforce_service_unlink() {
-        let _runtime = create_runtime();
-        let last_msg = Rc::new(RefCell::new(None::<ClientMessage>));
+        let owner = Owner::new();
+        owner.set();
+        let last_msg = SendWrapper::new(Rc::new(RefCell::new(None::<ClientMessage>)));
         let last_msg_clone = last_msg.clone();
 
         let service = SalesforceService::new(Callback::new(move |msg| {

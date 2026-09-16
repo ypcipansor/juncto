@@ -1,5 +1,6 @@
 mod analytics;
 mod chat;
+mod cleanup;
 mod components_ui;
 mod connection_stats;
 mod deeplink;
@@ -28,10 +29,11 @@ mod virtual_background;
 mod webrtc;
 mod whiteboard;
 
-use crate::components_ui::toast::{provide_toast_context, ToastContainer};
+use crate::components_ui::toast::{ToastContainer, provide_toast_context};
 use crate::i18n::provide_i18n_context;
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::components::*;
+use leptos_router::path;
 use pages::home::Home;
 use pages::room::Room;
 use wasm_bindgen::prelude::*;
@@ -57,21 +59,21 @@ fn App() -> impl IntoView {
                     <p>"Please upgrade your browser to a modern version (e.g., Chrome, Firefox, Safari, Edge) that supports WebRTC."</p>
                 </div>
             </div>
-        }.into_view();
+        }.into_any();
     }
 
     view! {
         <ToastContainer />
         <Router>
             <main>
-                <Routes>
-                    <Route path="" view=Home/>
-                    <Route path="/room/:id" view=Room/>
+                <Routes fallback=|| view! { <p>"Page not found."</p> }>
+                    <Route path=path!("") view=Home/>
+                    <Route path=path!("/room/:id") view=Room/>
                 </Routes>
             </main>
         </Router>
     }
-    .into_view()
+    .into_any()
 }
 
 #[wasm_bindgen(start)]

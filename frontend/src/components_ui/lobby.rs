@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn LobbyScreen(announcement: ReadSignal<Option<String>>) -> impl IntoView {
@@ -27,8 +27,9 @@ mod tests {
 
     #[test]
     fn test_lobby_screen_compiles() {
-        let _ = create_runtime();
-        let (announcement, _) = create_signal(None::<String>);
+        let owner = Owner::new();
+        owner.set();
+        let (announcement, _) = signal(None::<String>);
         let _view = view! { <LobbyScreen announcement=announcement /> };
         let _ = true;
     }

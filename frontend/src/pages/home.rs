@@ -1,14 +1,14 @@
 use crate::utils::create_room_url;
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::hooks::*;
 
 #[component]
 pub fn Home() -> impl IntoView {
-    let (room_name, set_room_name) = create_signal("My Meeting".to_string());
+    let (room_name, set_room_name) = signal("My Meeting".to_string());
     let navigate = use_navigate();
 
     let settings = crate::storage::load_settings();
-    let (recent_rooms, _set_recent_rooms) = create_signal(settings.recent_rooms);
+    let (recent_rooms, _set_recent_rooms) = signal(settings.recent_rooms);
 
     let nav_create = navigate.clone();
     let create_meeting = move |_| {

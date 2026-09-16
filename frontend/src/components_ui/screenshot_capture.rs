@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, HtmlVideoElement};
 
@@ -68,7 +68,7 @@ pub fn ScreenshotCapture() -> impl IntoView {
         }
     };
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(window) = web_sys::window() {
             let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
                 capture(());

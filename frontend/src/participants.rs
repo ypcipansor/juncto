@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use shared::Participant;
 
 fn sort_participants(mut participants: Vec<Participant>) -> Vec<Participant> {
@@ -52,8 +52,8 @@ pub fn ParticipantsList(
     #[prop(optional)] on_grant_unmute: Option<Callback<String>>,
     #[prop(optional)] on_grant_camera: Option<Callback<String>>,
 ) -> impl IntoView {
-    let (lobby_msg, set_lobby_msg) = create_signal("".to_string());
-    let (search_query, set_search_query) = create_signal("".to_string());
+    let (lobby_msg, set_lobby_msg) = signal("".to_string());
+    let (search_query, set_search_query) = signal("".to_string());
 
     let format_time = |ms: u64| {
         let seconds = ms / 1000;
@@ -62,16 +62,16 @@ pub fn ParticipantsList(
         format!("{:02}:{:02}", m, s)
     };
 
-    let on_promote_sv = store_value(on_promote);
-    let on_mute_sv = store_value(on_mute);
-    let _on_mute_camera_sv = store_value(on_mute_camera);
-    let on_transfer_host_sv = store_value(on_transfer_host);
-    let on_kick_sv = store_value(on_kick);
-    let on_request_unmute_sv = store_value(on_request_unmute);
-    let on_request_remote_control_sv = store_value(on_request_remote_control);
-    let on_pin_sv = store_value(on_pin);
-    let on_set_volume_sv = store_value(on_set_volume);
-    let on_mute_everyone_else_sv = store_value(on_mute_everyone_else);
+    let on_promote_sv = StoredValue::new(on_promote);
+    let on_mute_sv = StoredValue::new(on_mute);
+    let _on_mute_camera_sv = StoredValue::new(on_mute_camera);
+    let on_transfer_host_sv = StoredValue::new(on_transfer_host);
+    let on_kick_sv = StoredValue::new(on_kick);
+    let on_request_unmute_sv = StoredValue::new(on_request_unmute);
+    let on_request_remote_control_sv = StoredValue::new(on_request_remote_control);
+    let on_pin_sv = StoredValue::new(on_pin);
+    let on_set_volume_sv = StoredValue::new(on_set_volume);
+    let on_mute_everyone_else_sv = StoredValue::new(on_mute_everyone_else);
 
     view! {
         <div class="panel-content participants-list" style="padding: 10px;">
@@ -80,7 +80,7 @@ pub fn ParticipantsList(
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <h4 style="margin: 0;">"Waiting Room"</h4>
                         <button
-                            on:click=move |_| { for p in knocking_participants.get() { on_allow.call(p.id); } }
+                            on:click=move |_| { for p in knocking_participants.get() { on_allow.run(p.id); } }
                             class="btn btn-primary" style="font-size: 0.8rem; padding: 4px 8px;"
                         >
                             "Allow All"
@@ -99,12 +99,11 @@ pub fn ParticipantsList(
                             <button
                                 on:click=move |_| {
                                     let msg = lobby_msg.get();
-                                    if !msg.is_empty() {
-                                        if let Some(cb) = on_broadcast_lobby {
-                                            cb.call(msg);
+                                    if !msg.is_empty()
+                                        && let Some(cb) = on_broadcast_lobby {
+                                            cb.run(msg);
                                             set_lobby_msg.set("".to_string());
                                         }
-                                    }
                                 }
                                 class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;"
                             >
@@ -124,8 +123,8 @@ pub fn ParticipantsList(
                                     <li style="padding: 8px; background: var(--card-bg); border-radius: 6px;">
                                         <div style="font-weight: 500; font-size: 0.9rem;">{p.name}</div>
                                         <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                            <button on:click=move |_| on_allow.call(id_allow.clone()) class="btn btn-success" style="font-size: 0.75rem; padding: 2px 6px;">"Allow"</button>
-                                            <button on:click=move |_| on_deny.call(id_deny.clone()) class="btn btn-danger" style="font-size: 0.75rem; padding: 2px 6px;">"Deny"</button>
+                                            <button on:click=move |_| on_allow.run(id_allow.clone()) class="btn btn-success" style="font-size: 0.75rem; padding: 2px 6px;">"Allow"</button>
+                                            <button on:click=move |_| on_deny.run(id_deny.clone()) class="btn btn-danger" style="font-size: 0.75rem; padding: 2px 6px;">"Deny"</button>
                                         </div>
                                     </li>
                                 }
@@ -148,9 +147,9 @@ pub fn ParticipantsList(
 
             <Show when=move || is_host.get()>
                 <div style="display: flex; gap: 5px; margin-bottom: 15px;">
-                    <button on:click=move |_| { if let Some(cb) = on_mute_all { cb.call(()); } } id="mute-all-btn" class="btn btn-warning" style="flex: 1; font-size: 0.75rem; padding: 4px;">"Mute All"</button>
-                    <button on:click=move |_| { if let Some(cb) = on_mute_camera_all { cb.call(()); } } class="btn btn-warning" style="flex: 1; font-size: 0.75rem; padding: 4px;">"Cam Off All"</button>
-                    <button id="stop-screen-share-all-btn" on:click=move |_| { if let Some(cb) = on_stop_screen_share_all { cb.call(()); } } class="btn btn-danger" style="flex: 1; font-size: 0.75rem; padding: 4px;">"Stop Screen"</button>
+                    <button on:click=move |_| { if let Some(cb) = on_mute_all { cb.run(()); } } id="mute-all-btn" class="btn btn-warning" style="flex: 1; font-size: 0.75rem; padding: 4px;">"Mute All"</button>
+                    <button on:click=move |_| { if let Some(cb) = on_mute_camera_all { cb.run(()); } } class="btn btn-warning" style="flex: 1; font-size: 0.75rem; padding: 4px;">"Cam Off All"</button>
+                    <button id="stop-screen-share-all-btn" on:click=move |_| { if let Some(cb) = on_stop_screen_share_all { cb.run(()); } } class="btn btn-danger" style="flex: 1; font-size: 0.75rem; padding: 4px;">"Stop Screen"</button>
                 </div>
             </Show>
 
@@ -166,8 +165,8 @@ pub fn ParticipantsList(
                     }
                     key=|p| (p.id.clone(), p.name.clone(), p.is_hand_raised, p.is_sharing_screen, p.is_muted, p.presence.clone(), p.is_visitor, p.e2ee_enabled, p.avatar_url.clone())
                     children=move |p| {
-                        let p_sv = store_value(p);
-                        let (avatar_failed, set_avatar_failed) = create_signal(false);
+                        let p_sv = StoredValue::new(p);
+                        let (avatar_failed, set_avatar_failed) = signal(false);
 
                         view! {
                             <li class="participant-item">
@@ -200,18 +199,18 @@ pub fn ParticipantsList(
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 8px; align-items: center;">
-                                    {move || if p_sv.get_value().e2ee_enabled { view! { <span class="e2ee-lock" title="End-to-End Encrypted">"🔒"</span> }.into_view() } else { view! { <span/> }.into_view() }}
-                                    {move || if p_sv.get_value().is_hand_raised { view! { <span title="Hand Raised">"✋"</span> }.into_view() } else { view! { <span/> }.into_view() }}
-                                    {move || if p_sv.get_value().is_sharing_screen { view! { <span title="Sharing Screen">"🖥️"</span> }.into_view() } else { view! { <span/> }.into_view() }}
-                                    {move || if p_sv.get_value().is_muted { view! { <span title="Muted" style="color: var(--danger-color);">"🔇"</span> }.into_view() } else { view! { <span/> }.into_view() }}
-                                    {move || if p_sv.get_value().is_camera_muted { view! { <span title="Camera Off" style="color: var(--danger-color);">"🚫"</span> }.into_view() } else { view! { <span/> }.into_view() }}
+                                    {move || if p_sv.get_value().e2ee_enabled { view! { <span class="e2ee-lock" title="End-to-End Encrypted">"🔒"</span> }.into_any() } else { view! { <span/> }.into_any() }}
+                                    {move || if p_sv.get_value().is_hand_raised { view! { <span title="Hand Raised">"✋"</span> }.into_any() } else { view! { <span/> }.into_any() }}
+                                    {move || if p_sv.get_value().is_sharing_screen { view! { <span title="Sharing Screen">"🖥️"</span> }.into_any() } else { view! { <span/> }.into_any() }}
+                                    {move || if p_sv.get_value().is_muted { view! { <span title="Muted" style="color: var(--danger-color);">"🔇"</span> }.into_any() } else { view! { <span/> }.into_any() }}
+                                    {move || if p_sv.get_value().is_camera_muted { view! { <span title="Camera Off" style="color: var(--danger-color);">"🚫"</span> }.into_any() } else { view! { <span/> }.into_any() }}
 
                                     <div style="display: flex; gap: 4px; align-items: center;">
                                         <Show when=move || on_request_remote_control_sv.get_value().is_some() && my_id.get() != Some(p_sv.get_value().id)>
                                             <button
                                                 on:click={
                                                     let id = p_sv.get_value().id.clone();
-                                                    move |_| { if let Some(cb) = on_request_remote_control_sv.get_value() { cb.call(id.clone()); } }
+                                                    move |_| { if let Some(cb) = on_request_remote_control_sv.get_value() { cb.run(id.clone()); } }
                                                 }
                                                 class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem;"
                                                 title="Request Remote Control"
@@ -228,7 +227,7 @@ pub fn ParticipantsList(
                                                     let id = p_sv.get_value().id.clone();
                                                     move |ev| {
                                                         if let Some(cb) = on_set_volume_sv.get_value() {
-                                                            cb.call((id.clone(), event_target_value(&ev).parse().unwrap_or(1.0)));
+                                                            cb.run((id.clone(), event_target_value(&ev).parse().unwrap_or(1.0)));
                                                         }
                                                     }
                                                 }
@@ -243,7 +242,7 @@ pub fn ParticipantsList(
                                                     move |_| {
                                                         if let Some(cb) = on_pin_sv.get_value() {
                                                             let current_pinned = pinned_participant.and_then(|s: ReadSignal<Option<String>>| s.get());
-                                                            cb.call(if current_pinned.as_ref() == Some(&id) { None } else { Some(id.clone()) });
+                                                            cb.run(if current_pinned.as_ref() == Some(&id) { None } else { Some(id.clone()) });
                                                         }
                                                     }
                                                 }
@@ -261,7 +260,7 @@ pub fn ParticipantsList(
                                                 <button
                                                     on:click={
                                                         let id = p_sv.get_value().id.clone();
-                                                        move |_| { on_mute_sv.get_value().call(id.clone()); }
+                                                        move |_| { on_mute_sv.get_value().run(id.clone()); }
                                                     }
                                                     class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem;"
                                                     title="Mute Participant"
@@ -272,7 +271,7 @@ pub fn ParticipantsList(
                                             <button
                                                 on:click={
                                                     let id = p_sv.get_value().id.clone();
-                                                    move |_| { on_transfer_host_sv.get_value().call(id.clone()); }
+                                                    move |_| { on_transfer_host_sv.get_value().run(id.clone()); }
                                                 }
                                                 class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem;"
                                                 title="Transfer Host"
@@ -286,7 +285,7 @@ pub fn ParticipantsList(
                                                         let id = p_sv.get_value().id.clone();
                                                         move |_| {
                                                             if let Some(cb) = on_promote_sv.get_value() {
-                                                                cb.call(id.clone());
+                                                                cb.run(id.clone());
                                                             }
                                                         }
                                                     }
@@ -300,7 +299,7 @@ pub fn ParticipantsList(
                                                 <button
                                                     on:click={
                                                         let id = p_sv.get_value().id.clone();
-                                                        move |_| { on_request_unmute_sv.get_value().unwrap().call(id.clone()); }
+                                                        move |_| { on_request_unmute_sv.get_value().unwrap().run(id.clone()); }
                                                     }
                                                     class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem;"
                                                     title="Request Unmute"
@@ -312,7 +311,7 @@ pub fn ParticipantsList(
                                                 <button
                                                     on:click={
                                                         let id = p_sv.get_value().id.clone();
-                                                        move |_| { on_mute_everyone_else_sv.get_value().unwrap().call(id.clone()); }
+                                                        move |_| { on_mute_everyone_else_sv.get_value().unwrap().run(id.clone()); }
                                                     }
                                                     class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem;"
                                                     title="Mute Everyone Else"
@@ -323,7 +322,7 @@ pub fn ParticipantsList(
                                             <button
                                                 on:click={
                                                     let id = p_sv.get_value().id.clone();
-                                                    move |_| { on_kick_sv.get_value().call(id.clone()); }
+                                                    move |_| { on_kick_sv.get_value().run(id.clone()); }
                                                 }
                                                 class="btn btn-outline" style="padding: 2px 6px; font-size: 0.7rem; color: var(--danger-color); border-color: var(--danger-color);"
                                                 title="Kick Participant"
@@ -336,7 +335,7 @@ pub fn ParticipantsList(
                                                 <button
                                                     on:click={
                                                         let id = p_sv.get_value().id.clone();
-                                                        move |_| { if let Some(cb) = on_grant_unmute { cb.call(id.clone()); } }
+                                                        move |_| { if let Some(cb) = on_grant_unmute { cb.run(id.clone()); } }
                                                     }
                                                     class="btn btn-success grant-mic-btn" style="padding: 2px 6px; font-size: 0.7rem;"
                                                 >
@@ -347,7 +346,7 @@ pub fn ParticipantsList(
                                                 <button
                                                     on:click={
                                                         let id = p_sv.get_value().id.clone();
-                                                        move |_| { if let Some(cb) = on_grant_camera { cb.call(id.clone()); } }
+                                                        move |_| { if let Some(cb) = on_grant_camera { cb.run(id.clone()); } }
                                                     }
                                                     class="btn btn-success grant-cam-btn" style="padding: 2px 6px; font-size: 0.7rem;"
                                                 >
@@ -427,14 +426,16 @@ mod tests {
 
     #[test]
     fn test_mute_all_visibility_logic() {
-        let _runtime = create_runtime();
-        let (is_host, _set_is_host) = create_signal(true);
+        let owner = Owner::new();
+        owner.set();
+        let (is_host, _set_is_host) = signal(true);
         assert!(is_host.get());
     }
 
     #[test]
     fn test_promote_button_visibility_logic() {
-        let _runtime = create_runtime();
+        let owner = Owner::new();
+        owner.set();
         let p_visitor = Participant {
             id: "1".to_string(),
             name: "Visitor".to_string(),
@@ -509,7 +510,7 @@ mod tests {
             avatar_url: None,
         };
 
-        let participants = vec![p1, p2];
+        let participants = [p1, p2];
         let query = "al".to_string();
 
         let filtered: Vec<_> = participants

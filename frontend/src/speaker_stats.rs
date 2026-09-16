@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use shared::Participant;
 
 #[component]
@@ -26,7 +26,7 @@ pub fn SpeakerStatsDialog(
                 <div class="modal-content" style="width: 400px;">
                     <div class="modal-header">
                         <h3>"Speaker Stats"</h3>
-                        <button id="close-speaker-stats-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button id="close-speaker-stats-btn" class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>

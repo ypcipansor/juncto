@@ -1,5 +1,5 @@
 use crate::i18n::t;
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn SharedVideoDialog(
@@ -7,7 +7,7 @@ pub fn SharedVideoDialog(
     on_close: Callback<()>,
     on_submit: Callback<String>,
 ) -> impl IntoView {
-    let (url, set_url) = create_signal("".to_string());
+    let (url, set_url) = signal("".to_string());
 
     view! {
         <Show when=move || show.get()>
@@ -15,7 +15,7 @@ pub fn SharedVideoDialog(
                 <div class="modal-content" style="width: 400px;">
                     <div class="modal-header">
                         <h3>{move || t("share_video")}</h3>
-                        <button id="close-shared-video-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button id="close-shared-video-btn" class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
@@ -32,7 +32,7 @@ pub fn SharedVideoDialog(
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button
                             class="btn btn-secondary"
-                            on:click=move |_| on_close.call(())
+                            on:click=move |_| on_close.run(())
                         >
                             {move || t("cancel")}
                         </button>
@@ -40,8 +40,8 @@ pub fn SharedVideoDialog(
                             id="submit-shared-video-btn"
                             class="btn btn-primary"
                             on:click=move |_| {
-                                on_submit.call(url.get());
-                                on_close.call(());
+                                on_submit.run(url.get());
+                                on_close.run(());
                                 set_url.set("".to_string());
                             }
                         >

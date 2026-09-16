@@ -100,13 +100,13 @@ pub fn handle_remote_control(
                 .unwrap()
                 .insert(requester_id.clone(), uid.to_string());
             let mut out = Vec::with_capacity(2);
-            if let Some(prev) = previous_controlled {
-                if prev != uid {
-                    out.push(ServerMessage::RemoteControlStopped {
-                        sender_id: requester_id.clone(),
-                        peer_id: prev,
-                    });
-                }
+            if let Some(prev) = previous_controlled
+                && prev != uid
+            {
+                out.push(ServerMessage::RemoteControlStopped {
+                    sender_id: requester_id.clone(),
+                    peer_id: prev,
+                });
             }
             out.push(ServerMessage::RemoteControlAllowed {
                 requester_id,

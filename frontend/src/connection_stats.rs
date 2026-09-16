@@ -1,13 +1,15 @@
 use gloo_timers::callback::Interval;
-use leptos::*;
+use leptos::prelude::*;
+
+use crate::cleanup::on_cleanup_local;
 
 #[component]
 pub fn ConnectionStats(on_ping: Callback<()>, rtt: ReadSignal<u64>) -> impl IntoView {
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let handle = Interval::new(2000, move || {
-            on_ping.call(());
+            on_ping.run(());
         });
-        on_cleanup(move || drop(handle));
+        on_cleanup_local(move || drop(handle));
     });
 
     view! {

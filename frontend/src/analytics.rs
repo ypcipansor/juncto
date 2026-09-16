@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use shared::ClientMessage;
 use wasm_bindgen::JsValue;
 
@@ -15,7 +15,7 @@ impl AnalyticsService {
     pub fn track_event(&self, name: &str, _properties: JsValue) {
         #[cfg(target_arch = "wasm32")]
         let props_str = js_sys::JSON::stringify(&_properties)
-            .map(|s| String::from(s))
+            .map(String::from)
             .unwrap_or_else(|_| "{}".to_string());
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -25,7 +25,7 @@ impl AnalyticsService {
             name: name.to_string(),
             properties: props_str,
         };
-        self.send_signal.call(msg);
+        self.send_signal.run(msg);
     }
 
     pub fn track_join(&self, _room_id: &str) {
@@ -85,13 +85,16 @@ pub fn use_analytics() -> AnalyticsService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use send_wrapper::SendWrapper;
     use shared::ClientMessage;
     use std::cell::RefCell;
     use std::rc::Rc;
 
     #[test]
     fn test_analytics_event_formatting() {
-        let last_msg = Rc::new(RefCell::new(None::<ClientMessage>));
+        let owner = Owner::new();
+        owner.set();
+        let last_msg = SendWrapper::new(Rc::new(RefCell::new(None::<ClientMessage>)));
         let last_msg_clone = last_msg.clone();
 
         let service = AnalyticsService::new(Callback::new(move |msg| {

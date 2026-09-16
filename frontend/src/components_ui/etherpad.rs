@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn Etherpad(#[prop(into)] url: Signal<Option<String>>) -> impl IntoView {

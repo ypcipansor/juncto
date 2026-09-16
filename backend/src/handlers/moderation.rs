@@ -330,9 +330,10 @@ mod tests {
         }
 
         let msgs = mute_camera_all(&host_id, &state);
-        assert!(msgs
-            .iter()
-            .any(|m| matches!(m, ServerMessage::CameraMutedByHost(id) if id == &user_id)));
+        assert!(
+            msgs.iter()
+                .any(|m| matches!(m, ServerMessage::CameraMutedByHost(id) if id == &user_id))
+        );
     }
 
     #[test]
@@ -393,9 +394,10 @@ mod tests {
 
         let msgs = mute_all(&host_id, &state);
         assert!(!msgs.is_empty());
-        assert!(msgs
-            .iter()
-            .any(|m| matches!(m, ServerMessage::MutedByHost(id) if id == &user_id)));
+        assert!(
+            msgs.iter()
+                .any(|m| matches!(m, ServerMessage::MutedByHost(id) if id == &user_id))
+        );
 
         let p_map = state.participants.lock().unwrap();
         assert!(p_map.get(&user_id).unwrap().is_muted);
@@ -468,12 +470,15 @@ mod tests {
         let msgs = mute_all(&host_id, &state);
 
         // Only user_in_main should be muted (same room as host)
-        assert!(msgs
-            .iter()
-            .any(|m| matches!(m, ServerMessage::MutedByHost(id) if id == &user_in_main)));
-        assert!(!msgs
-            .iter()
-            .any(|m| matches!(m, ServerMessage::MutedByHost(id) if id == &user_in_breakout)));
+        assert!(
+            msgs.iter()
+                .any(|m| matches!(m, ServerMessage::MutedByHost(id) if id == &user_in_main))
+        );
+        assert!(
+            !msgs
+                .iter()
+                .any(|m| matches!(m, ServerMessage::MutedByHost(id) if id == &user_in_breakout))
+        );
 
         let p_map = state.participants.lock().unwrap();
         assert!(p_map.get(&user_in_main).unwrap().is_muted);
@@ -537,9 +542,10 @@ mod tests {
         }
 
         let msgs = stop_screen_share_all(&host_id, &state);
-        assert!(msgs
-            .iter()
-            .any(|m| matches!(m, ServerMessage::ScreenShareStoppedByHost)));
+        assert!(
+            msgs.iter()
+                .any(|m| matches!(m, ServerMessage::ScreenShareStoppedByHost))
+        );
 
         let p_map = state.participants.lock().unwrap();
         assert!(!p_map.get(&user_id).unwrap().is_sharing_screen);

@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[derive(Clone, Debug)]
 struct ActiveReaction {
@@ -12,9 +12,9 @@ pub fn ReactionDisplay(
     // Signal that updates when a new reaction arrives. Tuple: (sender_id, emoji, timestamp)
     last_reaction: ReadSignal<Option<(String, String, u64)>>,
 ) -> impl IntoView {
-    let (reactions, set_reactions) = create_signal(Vec::<ActiveReaction>::new());
+    let (reactions, set_reactions) = signal(Vec::<ActiveReaction>::new());
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some((_, emoji, _)) = last_reaction.get() {
             // Spawn a new floating emoji
             let id = js_sys::Date::now() as u64 + (js_sys::Math::random() * 1000.0) as u64;

@@ -10,8 +10,8 @@ use super::whiteboard;
 use crate::AppState;
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::IntoResponse,
 };
@@ -38,7 +38,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         config.clone()
     };
     if let Ok(json) = serde_json::to_string(&ServerMessage::RoomUpdated(current_config.clone())) {
-        let _ = sender.send(Message::Text(json)).await;
+        let _ = sender.send(Message::Text(json.into())).await;
     }
 
     // Explicitly send RoomUpdated to self to trigger frontend state logic (like is_host)
@@ -52,10 +52,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     // Send loop
     let send_task = tokio::spawn(async move {
         while let Some(msg) = internal_rx.recv().await {
-            if let Ok(json_msg) = serde_json::to_string(&msg) {
-                if sender.send(Message::Text(json_msg)).await.is_err() {
-                    break;
-                }
+            if let Ok(json_msg) = serde_json::to_string(&msg)
+                && sender.send(Message::Text(json_msg.into())).await.is_err()
+            {
+                break;
             }
         }
     });
@@ -286,12 +286,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     // Validate subject length to prevent abuse. Use char count
                                     // (not byte length) so multi-byte UTF-8 content (CJK, emoji)
                                     // is treated consistently with what users see.
-                                    if let Some(ref s) = subject {
-                                        if s.chars().count() > 256 {
+                                    if let Some(ref s) = subject
+                                        && s.chars().count() > 256 {
                                             let _ = internal_tx.send(ServerMessage::Error("Invalid subject: too long".to_string())).await;
                                             continue;
                                         }
-                                    }
                                     // Normalize `Some("")` to `None` for defensive consistency
                                     // with the frontend (state.rs `set_subject`), so a client
                                     // bypassing the frontend cannot store an empty-string
@@ -888,11 +887,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                         } else {
                                             let mut config = room_config_mutex.lock().unwrap();
                                             // Robust Host Check: Clear host_id if participant no longer exists
-                                            if let Some(hid) = &config.host_id {
-                                                if !participants.contains_key(hid) {
+                                            if let Some(hid) = &config.host_id
+                                                && !participants.contains_key(hid) {
                                                     config.host_id = None;
                                                 }
-                                            }
                                             let assigned = if config.host_id.is_none() && !me.is_visitor {
                                                 config.host_id = Some(id.clone());
                                                 true
@@ -1862,11 +1860,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     (false, false)
                                 } else {
                                     // Robust Host Check: Clear host_id if participant no longer exists
-                                    if let Some(hid) = &config.host_id {
-                                        if !participants.contains_key(hid) {
+                                    if let Some(hid) = &config.host_id
+                                        && !participants.contains_key(hid) {
                                             config.host_id = None;
                                         }
-                                    }
                                     let assigned = if config.host_id.is_none() && !me.is_visitor {
                                         config.host_id = Some(id.clone());
                                         true

@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 // Default placeholder values for the UI scaffold. Real dial-in details are
 // not yet provisioned by the backend — when a telephony provider is
@@ -31,7 +31,7 @@ pub fn DialInDialog(
                 <div class="modal-content" style="width: 400px; text-align: center;">
                     <div class="modal-header">
                         <h3>"Dial-in Information"</h3>
-                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
 
                     <div class="dial-in-box">
@@ -52,7 +52,7 @@ pub fn DialInDialog(
                     <button
                         id="dial-in-close-btn"
                         class="btn btn-secondary"
-                        on:click=move |_| on_close.call(())
+                        on:click=move |_| on_close.run(())
                         style="margin-top: 20px; width: 100%;"
                     >
                         "Close"

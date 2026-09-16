@@ -1,12 +1,13 @@
-use crate::components_ui::toast::{use_toast, ToastType};
+use crate::components_ui::toast::{ToastType, use_toast};
 use crate::i18n::t;
-use leptos::*;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
 use shared::Feedback;
 
 #[component]
 pub fn FeedbackDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl IntoView {
-    let (stars, set_stars) = create_signal(0u8);
-    let (comment, set_comment) = create_signal("".to_string());
+    let (stars, set_stars) = signal(0u8);
+    let (comment, set_comment) = signal("".to_string());
     let toast = use_toast();
 
     let submit = move |_| {
@@ -34,7 +35,7 @@ pub fn FeedbackDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl In
                     Ok(resp) => {
                         if resp.ok() {
                             toast.add(msg_submitted, ToastType::Success);
-                            on_close.call(());
+                            on_close.run(());
                             set_stars.set(0);
                             set_comment.set("".to_string());
                         } else {
@@ -54,7 +55,7 @@ pub fn FeedbackDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl In
                 <div class="modal-content" style="width: 400px;">
                     <div class="modal-header">
                         <h3>{move || t("feedback")}</h3>
-                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
 
                     <div style="margin-bottom: 20px; display: flex; justify-content: center; gap: 10px;">
@@ -102,11 +103,12 @@ mod tests {
     #[test]
     #[ignore]
     fn test_feedback_dialog_compiles() {
-        let _ = create_runtime();
-        let _show = create_rw_signal(true);
+        let owner = Owner::new();
+        owner.set();
+        let _show = RwSignal::new(true);
         let on_cancel = Callback::new(|_: ()| {});
 
-        let show = create_rw_signal(true);
+        let show = RwSignal::new(true);
         let _view = view! {
             <FeedbackDialog show=show.read_only() on_close=on_cancel />
         };
