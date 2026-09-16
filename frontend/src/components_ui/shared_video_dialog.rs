@@ -12,10 +12,10 @@ pub fn SharedVideoDialog(
     view! {
         <Show when=move || show.get()>
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-                <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div class="modal-content" style="width: 400px;">
+                    <div class="modal-header">
                         <h3>{move || t("share_video")}</h3>
-                        <button id="close-shared-video-btn" on:click=move |_| on_close.call(()) style="background: none; border: none; font-size: 20px; cursor: pointer;">"×"</button>
+                        <button id="close-shared-video-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
@@ -25,25 +25,25 @@ pub fn SharedVideoDialog(
                             prop:value=url
                             on:input=move |ev| set_url.set(event_target_value(&ev))
                             placeholder="https://www.youtube.com/watch?v=..."
-                            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                            style="width: 100%;"
                         />
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button
+                            class="btn btn-secondary"
                             on:click=move |_| on_close.call(())
-                            style="padding: 8px 16px; background-color: #6c757d; color: white; border: none; cursor: pointer; border-radius: 4px;"
                         >
                             {move || t("cancel")}
                         </button>
                         <button
                             id="submit-shared-video-btn"
+                            class="btn btn-primary"
                             on:click=move |_| {
                                 on_submit.call(url.get());
                                 on_close.call(());
                                 set_url.set("".to_string());
                             }
-                            style="padding: 8px 16px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;"
                         >
                             {move || t("share")}
                         </button>

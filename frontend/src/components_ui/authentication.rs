@@ -19,45 +19,50 @@ pub fn LoginDialog(
     };
 
     view! {
-        <div class="login-dialog-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div class="modal-content login-dialog" style="background: #2a2a2a; padding: 20px; border-radius: 8px; width: 300px; color: white;">
-                <h3 style="margin-top: 0; margin-bottom: 15px;">"Authentication Required"</h3>
+        <div class="login-dialog-overlay">
+            <div class="modal-content login-dialog" style="width: 320px;">
+                <div class="modal-header">
+                    <h3>"Authentication Required"</h3>
+                    <button class="modal-close-btn" on:click=move |_| on_cancel.call(())>"×"</button>
+                </div>
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px;">"Username"</label>
+                    <label class="form-label">"Username"</label>
                     <input
                         type="text"
+                        class="login-username-input"
                         placeholder="user@domain.com"
                         on:input=move |ev| set_username.set(event_target_value(&ev))
                         prop:value=username
-                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box;"
+                        style="width: 100%;"
                     />
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px;">"Password"</label>
+                    <label class="form-label">"Password"</label>
                     <input
                         type="password"
+                        class="login-password-input"
                         placeholder="Password"
                         on:input=move |ev| set_password.set(event_target_value(&ev))
                         prop:value=password
-                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #111; color: white; box-sizing: border-box;"
+                        style="width: 100%;"
                     />
                 </div>
                 <Show when=move || auth_error.get().is_some()>
-                    <div style="color: #ff4444; margin-bottom: 15px; font-size: 14px;">
+                    <div class="settings-error">
                         {move || auth_error.get().unwrap_or_default()}
                     </div>
                 </Show>
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button
+                        class="btn btn-secondary login-cancel-btn"
                         on:click=move |_| on_cancel.call(())
-                        style="padding: 8px 16px; background: #444; color: white; border: none; border-radius: 4px; cursor: pointer;"
                     >
                         "Cancel"
                     </button>
                     <button
+                        class="btn btn-primary login-submit-btn"
                         on:click=handle_submit
                         disabled=move || username.get().is_empty() || password.get().is_empty()
-                        style=move || format!("padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: {}; opacity: {};", if username.get().is_empty() || password.get().is_empty() { "not-allowed" } else { "pointer" }, if username.get().is_empty() || password.get().is_empty() { "0.5" } else { "1" })
                     >
                         "Login"
                     </button>

@@ -877,6 +877,130 @@ body {
     box-shadow: 0 0 0 2px var(--primary-light);
 }
 
+/* Chat message list */
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 12px;
+}
+
+.messages ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-message {
+    max-width: 100%;
+}
+
+.chat-message-time {
+    color: var(--text-muted);
+    margin-right: 5px;
+}
+
+.chat-message strong {
+    color: var(--text-primary);
+}
+
+.chat-message span {
+    color: inherit;
+}
+
+.chat-sender-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+}
+
+.chat-message giphy-embed,
+.chat-message img {
+    border-radius: var(--radius-sm);
+}
+
+.chat-recipient-select {
+    margin-bottom: 8px;
+}
+
+.chat-recipient-select select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+}
+
+.chat-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.chat-input-row input[type="text"] {
+    flex: 1;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    outline: none;
+}
+
+.chat-input-row input[type="text"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.chat-input-row input[type="text"]::placeholder {
+    color: var(--text-muted);
+}
+
+.chat-send-btn {
+    padding: 10px 16px;
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.chat-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chat-gif-btn {
+    padding: 10px 12px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+}
+
+.typing-indicator {
+    height: 20px;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    padding: 0 4px;
+}
+
 /* Prejoin & Home Screen Overhaul */
 .welcome-container, .prejoin-container {
     min-height: 100vh;
@@ -961,7 +1085,7 @@ body {
 }
 
 /* Modals & Overlays */
-.rejoin-overlay, .modal-backdrop, .modal-overlay {
+.rejoin-overlay, .modal-backdrop, .modal-overlay, .dialog-overlay, .login-dialog-overlay, .calendar-list-overlay {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.85);
@@ -973,7 +1097,7 @@ body {
     padding: 20px;
 }
 
-.rejoin-dialog, .modal-dialog, .modal-content {
+.rejoin-dialog, .modal-dialog, .modal-content, .dialog-content, .login-dialog, .calendar-list-dialog {
     background: var(--bg-surface);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-xl);
@@ -987,6 +1111,343 @@ body {
     flex-direction: column;
 }
 
+/* Headings and body copy inside a dialog must follow the dark surface tokens.
+   Components that render into a modal must not rely on the browser default
+   (near-black) text colour or on inline `background: white` overrides. */
+.modal-content h1, .modal-content h2, .modal-content h3, .modal-content h4,
+.dialog-content h1, .dialog-content h2, .dialog-content h3, .dialog-content h4,
+.login-dialog h1, .login-dialog h2, .login-dialog h3, .login-dialog h4,
+.calendar-list-dialog h1, .calendar-list-dialog h2, .calendar-list-dialog h3, .calendar-list-dialog h4,
+.rejoin-dialog h1, .rejoin-dialog h2, .rejoin-dialog h3, .rejoin-dialog h4 {
+    color: var(--text-primary);
+}
+
+.modal-content p, .dialog-content p, .login-dialog p, .calendar-list-dialog p, .rejoin-dialog p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Form controls inside dialogs inherit the design system instead of the
+   browser's light-mode defaults (which produced dark-on-dark fields). */
+.modal-content input[type="text"],
+.modal-content input[type="url"],
+.modal-content input[type="password"],
+.modal-content input[type="search"],
+.modal-content select,
+.modal-content textarea,
+.dialog-content input[type="text"],
+.dialog-content textarea,
+.login-dialog input[type="text"],
+.login-dialog input[type="password"] {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modal-content input[type="text"]:focus,
+.modal-content input[type="url"]:focus,
+.modal-content input[type="password"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus,
+.dialog-content input[type="text"]:focus,
+.dialog-content textarea:focus,
+.login-dialog input[type="text"]:focus,
+.login-dialog input[type="password"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.modal-content input::placeholder,
+.modal-content textarea::placeholder,
+.dialog-content input::placeholder,
+.dialog-content textarea::placeholder,
+.login-dialog input::placeholder {
+    color: var(--text-muted);
+}
+
+.modal-content select option,
+.dialog-content select option {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+.modal-content label,
+.dialog-content label,
+.login-dialog label,
+.calendar-list-dialog label {
+    color: var(--text-secondary);
+}
+
+/* Tabs inside the settings dialog */
+.modal-content .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    flex-shrink: 0;
+}
+
+/* The dialog is height-capped and a flex column, so the tab body is the only
+   element allowed to scroll. Without this the tabs overflow past the dialog
+   box and their bottom controls become unreachable. */
+.modal-content .tab-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.modal-content .tabs button {
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.modal-content .tabs button:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.modal-content .tabs button.modal-tab-btn.active {
+    color: #ffffff;
+    background: var(--primary-color);
+    box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+/* Integration rows and file sharing list */
+.integration-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: rgba(15, 23, 42, 0.4);
+    color: var(--text-primary);
+}
+
+.file-sharing h3 {
+    color: var(--text-primary);
+}
+
+.file-sharing-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: rgba(15, 23, 42, 0.4);
+    margin-bottom: 10px;
+}
+
+.file-sharing-meta {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.file-sharing-empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Device preview frame in settings */
+.modal-content .preview {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Speaker stats table */
+.modal-content table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-primary);
+}
+
+.modal-content thead tr {
+    border-bottom: 1px solid var(--border-strong);
+    text-align: left;
+}
+
+.modal-content th,
+.modal-content td {
+    padding: 10px 8px;
+    color: var(--text-primary);
+}
+
+.modal-content tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-content tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* Chat component container */
+.chat-inner-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.recipient-selector label {
+    display: block;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.selected-file-hint {
+    color: var(--success-color);
+}
+
+/* Calendar dialog list */
+.calendar-event {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--primary-color);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.calendar-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 24px 12px;
+}
+
+/* Lobby (waiting room) */
+.lobby-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    background: var(--bg-dark);
+}
+
+.lobby-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.lobby-card p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.lobby-announcement {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(15, 23, 42, 0.6);
+    border-left: 4px solid var(--primary-color);
+    border-radius: var(--radius-md);
+    text-align: left;
+}
+
+.lobby-announcement strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.lobby-spinner {
+    margin-top: 30px;
+    font-size: 32px;
+    animation: lobby-spin 2s linear infinite;
+}
+
+@keyframes lobby-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Settings helpers */
+.settings-hint {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+}
+
+.settings-error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+/* Dial-in details panel */
+.dial-in-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.dial-in-box .dial-in-label {
+    margin: 0 0 8px;
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+}
+
+.dial-in-box .dial-in-number {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 16px;
+}
+
+.dial-in-box .dial-in-id {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-primary);
+}
+
+.dial-in-note {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -994,6 +1455,7 @@ body {
     margin-bottom: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .modal-title {

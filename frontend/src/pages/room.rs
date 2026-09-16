@@ -53,7 +53,14 @@ pub fn Room() -> impl IntoView {
     let (show_embed, set_show_embed) = create_signal(false);
     // Side panels are mutually exclusive; at most one is open at a time to
     // avoid squeezing/overlapping the stage (esp. on narrow viewports).
-    let (active_panel, set_active_panel) = create_signal(Some("chat"));
+    // Open chat by default on desktop, but start closed on narrow viewports
+    // where the panel is full-width and would hide the stage behind it.
+    let narrow_viewport = web_sys::window()
+        .and_then(|w| w.inner_width().ok())
+        .and_then(|v| v.as_f64())
+        .is_some_and(|w| w <= 768.0);
+    let (active_panel, set_active_panel) =
+        create_signal(if narrow_viewport { None } else { Some("chat") });
     let show_chat = Signal::derive(move || active_panel.get() == Some("chat"));
     let show_participants = Signal::derive(move || active_panel.get() == Some("participants"));
     let show_files = Signal::derive(move || active_panel.get() == Some("files"));

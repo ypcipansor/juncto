@@ -1,19 +1,19 @@
 # Juncto Migration Gap Matrix
 
-Gap matrix for the React Ôćĺ Rust (Leptos + Axum) migration. Status values:
+Gap matrix for the React → Rust (Leptos + Axum) migration. Status values:
 
-- **migrated** ÔÇö feature is implemented in the workspace root and exercised end-to-end.
-- **partial** ÔÇö exists in the workspace root but with reduced function; noted under Reason.
-- **missing** ÔÇö not yet implemented in the workspace root.
-- **skip** ÔÇö deliberately excluded; the Reason column must justify.
+- **migrated** — feature is implemented in the workspace root and exercised end-to-end.
+- **partial** — exists in the workspace root but with reduced function; noted under Reason.
+- **missing** — not yet implemented in the workspace root.
+- **skip** — deliberately excluded; the Reason column must justify.
 
 Mobile (`react/features/mobile/`, `ios/`, `android/`) is out of scope per user decision and is not listed.
 
 ## Health baseline (Step 0 audit)
 
-- `bash build.sh`: Ôťů succeeds (WASM + bindings generated, backend serves `:3000`).
-- `cargo test --workspace`: Ôťů green ÔÇö 101 tests (29 + 48 + 24 across three crates).
-- Playwright suite `tests/e2e`: Ôťů **88 passed, 2 skipped, 0 failed** (~2.4m, chromium), incl. `screenshot-gallery.spec.ts` capturing 10 UI views to `tests/screenshots/`. `tests/e2e/` duplication removed in Step 7.
+- `bash build.sh`: ✓ succeeds (WASM + bindings generated, backend serves `:3000`).
+- `cargo test --workspace`: ✓ green — 102 tests (29 + 49 + 24 across three crates).
+- Playwright suite `tests/e2e`: ✓ green, incl. `screenshot-gallery.spec.ts` capturing 41 UI views to `tests/screenshots/` and `contrast-audit.spec.ts` asserting a WCAG contrast floor for every dialog. `tests/e2e/` duplication removed in Step 7.
 
 ## Feature matrix
 
@@ -72,16 +72,16 @@ Mobile (`react/features/mobile/`, `ios/`, `android/`) is out of scope per user d
 | subtitles | partial | Toggle wired; receives no transcription without STT. |
 | shared-video | migrated | `components_ui/shared_video_dialog.rs`; `shared_video.spec.ts`. |
 | noise-suppression | migrated | Constraint-based fallback (no rnnoise port); `toggle` in settings. |
-| noise-detection | migrated | `noise_detected` event Ôćĺ toast in `state.rs`. |
+| noise-detection | migrated | `noise_detected` event → toast in `state.rs`. |
 | no-audio-signal | migrated | `on_no_audio` callback fires toast in `state.rs`. |
-| talk-while-muted | migrated | `talk_while_muted` event Ôćĺ toast in `state.rs`. |
+| talk-while-muted | migrated | `talk_while_muted` event → toast in `state.rs`. |
 | video-quality | migrated | HD/SD selector in settings device tab. |
 | pip | migrated | `requestPictureInPicture` via `<video>` elements on all tiles. |
 | stream-effects | partial | Only virtual background; blur pipeline exists through canvas in `media.rs`. |
 | recording | partial | Local recorder (`media_recorder.rs`) + `ToggleRecording` broadcast; no Jibri. |
 | recent-list | migrated | `storage.rs` holds `recent_rooms`; Home renders "Recent Meetings" list. |
 | notifications | migrated | Toast center: `NotificationBell` in room header with unread badge + history panel; `notification_center.spec.ts` green. |
-| rejoin | migrated | Blocking overlay with "Rejoin now" button on WS drop. |
+| rejoin | migrated | Blocking overlay with "Rejoin now" button on WS drop; gallery captures it (`36-rejoin-overlay.png`). |
 | reconnect logic | migrated | `on_close/on_error` triggers rejoin overlay when joined. |
 | unsupported-browser | migrated | `lib.rs` blocks when no WebRTC. |
 | dynamic-branding | migrated | `state.set_branding`; `branding.spec.ts`. |
@@ -92,10 +92,10 @@ Mobile (`react/features/mobile/`, `ios/`, `android/`) is out of scope per user d
 | deeplink (mobile) | skip | Mobile excluded. |
 | remote-control | migrated | `remote_control.rs` + handler; `remote_control.spec.ts`. |
 | rtcstats | skip | Debug logging pipeline; low value. |
-| chrome-extension-banner | skip | Per shelf decision ┬ž3 of plan. |
-| old-client-notification | skip | Per plan ┬ž3 (irrelevant after rewrite). |
+| chrome-extension-banner | skip | Per shelf decision §3 of plan. |
+| old-client-notification | skip | Per plan §3 (irrelevant after rewrite). |
 | web-hid | skip | No HID hardware integration by default. |
-| external-api | skip | No postMessage bridge required (embed todo: iframe only). Decision: simple embed URL Ôćĺ `embed_meeting.rs` suffices. See note below. |
+| external-api | skip | No postMessage bridge required (embed todo: iframe only). Decision: simple embed URL → `embed_meeting.rs` suffices. See note below. |
 | file-sharing | migrated | `components_ui/file_sharing.rs`; server chat attachment recycle. |
 | feedback | migrated | `components_ui/feedback.rs` + handler; `feedback.spec.ts`. |
 | screenshot-capture (worker) | migrated | Used for thumbnails. |
@@ -103,8 +103,8 @@ Mobile (`react/features/mobile/`, `ios/`, `android/`) is out of scope per user d
 
 ## external-api decision (Langkah 0(d))
 
-- Current usage: embedded meetings via iframe only Ôćĺ skip public command/event bridge.
-- Public API behavior: **not kept** ÔÇö the external JS API does not exist post-cutover; embedders use iframe embed (URL params) only.
+- Current usage: embedded meetings via iframe only → skip public command/event bridge.
+- Public API behavior: **not kept** — the external JS API does not exist post-cutover; embedders use iframe embed (URL params) only.
 - If future deployments require the bridge, Step 6 describes the `web-sys` postMessage implementation.
 
 ## Auth decision (Step 4)
@@ -135,14 +135,35 @@ Mobile (`react/features/mobile/`, `ios/`, `android/`) is out of scope per user d
 - [x] React codebase removed (Step 7)
 - [x] UI responsive verified at 480/768px (`responsive.spec.ts` green)
 - [x] Mobile out of scope documented
+- [x] Every screen captured in the README gallery (41 views) with a contrast audit guarding legibility
+
+## Visual parity remediation (post-cutover)
+
+Issue #79 review asked for the entire frontend to be screenshotted, verified and shown in
+the README, with any broken, blank or badly contrasted view fixed first. That work is now
+complete and reproducible:
+
+- **Gallery.** `tests/e2e/screenshot-gallery.spec.ts` captures 41 views (desktop, dialogs
+  and a 420×860 mobile set) into `tests/screenshots/`; the README embeds every one of them.
+- **Contrast audit.** `tests/e2e/contrast-audit.spec.ts` measures resolved foreground and
+  background colours for every dialog, compositing translucent backdrops up the ancestor
+  chain, and fails below the WCAG floor. All dialogs currently measure ≥ 6.49:1.
+- **Fixes applied.** Dialog surfaces and text were moved onto the design tokens (no more
+  browser-default dark text on a white panel); the lobby screen dropped its hardcoded
+  `#333`/`#444` palette; and side panels now start closed at ≤ 768 px so the full-width
+  panel no longer covers the video stage on phones.
+- **Two extra captures.** The waiting room (`35-lobby.png`) now seeds a host first, because
+  the lobby only engages when a host is present; the reconnect overlay (`36-rejoin-overlay.png`)
+  closes the tracked WebSocket directly, since `setOffline` does not reliably drop an
+  already-open socket.
 
 ## Verified broken/missing (Step 0 evidence)
 
 1. `backend/static/styles.css` has exactly **1 @media** query (`@media (max-width: 768px)`, toolbox only).
-2. `frontend/src/pages/room.rs` lines 164-170 compute inline `margin-right` = 320px ├Ś panel count ÔÇö replaced with CSS in Step 2.
+2. `frontend/src/pages/room.rs` lines 164-170 compute inline `margin-right` = 320px × panel count — replaced with CSS in Step 2.
 3. `video_grid.rs` has all tile styles inline; no classes for filmstrip/thumbnails.
 4. `ToggleRoomLock` exists (boolean); no password UI; is successive for Step 4.
-5. E2EE toggle Ôćĺ `UpdateE2EE` exists; E2EEKeyExchange variant reserved; key-exchange flow deferred to Step 4.
+5. E2EE toggle → `UpdateE2EE` exists; E2EEKeyExchange variant reserved; key-exchange flow deferred to Step 4.
 6. `subtitles` overlay exists with "Transcriptions will appear here" stub; STT backend absent.
-7. Two parallel Playwright suites (`tests/e2e/` + `tests/e2e/`) Ôćĺ keep `tests/e2e`.
+7. Two parallel Playwright suites (`tests/e2e/` + `tests/e2e/`) → keep `tests/e2e`.
 

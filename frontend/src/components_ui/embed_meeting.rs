@@ -51,8 +51,11 @@ pub fn EmbedMeetingDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> imp
     view! {
         <Show when=move || show.get()>
             <div class="dialog-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-                <div class="dialog-content" style="background: white; padding: 20px; border-radius: 8px; color: black; min-width: 400px; max-width: 90%;">
-                    <h3 style="margin-top: 0;">"Embed Meeting"</h3>
+                <div class="dialog-content" style="min-width: 400px;">
+                    <div class="modal-header">
+                        <h3>"Embed Meeting"</h3>
+                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                    </div>
                     <p>"Copy the iframe code below to embed this meeting on your website:"</p>
                     <textarea
                         readonly=true
@@ -61,10 +64,10 @@ pub fn EmbedMeetingDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> imp
                     ></textarea>
 
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <button on:click=copy_to_clipboard style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button class="btn btn-success" on:click=copy_to_clipboard>
                             {move || if copy_success.get() { "Copied!" } else { "Copy Iframe Code" }}
                         </button>
-                        <button on:click=move |_| on_close.call(()) style="padding: 8px 16px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button class="btn btn-danger" on:click=move |_| on_close.call(())>
                             "Close"
                         </button>
                     </div>

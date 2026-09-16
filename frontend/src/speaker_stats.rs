@@ -23,16 +23,16 @@ pub fn SpeakerStatsDialog(
     view! {
         <Show when=move || show.get()>
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-                <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div class="modal-content" style="width: 400px;">
+                    <div class="modal-header">
                         <h3>"Speaker Stats"</h3>
-                        <button id="close-speaker-stats-btn" on:click=move |_| on_close.call(()) style="background: none; border: none; font-size: 20px; cursor: pointer;">"×"</button>
+                        <button id="close-speaker-stats-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
                     </div>
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
-                            <tr style="border-bottom: 1px solid #ccc; text-align: left;">
-                                <th style="padding: 8px;">"Name"</th>
-                                <th style="padding: 8px; text-align: right;">"Time"</th>
+                            <tr>
+                                <th style="text-align: left;">"Name"</th>
+                                <th style="text-align: right;">"Time"</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -42,8 +42,8 @@ pub fn SpeakerStatsDialog(
                                 children=move |p| {
                                     view! {
                                         <tr>
-                                            <td style="padding: 8px;">{p.name}</td>
-                                            <td style="padding: 8px; text-align: right;">{format_time(p.speaking_time)}</td>
+                                            <td>{p.name}</td>
+                                            <td style="text-align: right;">{format_time(p.speaking_time)}</td>
                                         </tr>
                                     }
                                 }

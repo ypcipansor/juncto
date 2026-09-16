@@ -1,102 +1,119 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (and other AI agents) working in this repository.
 
-> **Cutover note:** The React/Webpack web codebase, mobile apps, and server/packaging
-> infrastructure have been deleted. The repository root is now a single Rust workspace:
-> a Leptos (WASM) frontend plus an Axum backend, with shared types in the `shared` crate.
-> Build with `bash build.sh`, test with `cargo test --workspace`, and run the parity
-> suite at `tests/e2e`. See `MIGRATION.md` for the migration history.
+> **Cutover note:** the React/Webpack web codebase, the mobile apps, and the server
+> packaging infrastructure have been deleted. The repository root is now a single Rust
+> workspace: a Leptos (WASM) frontend, an Axum backend, and a `shared` crate holding the
+> WebSocket types. There is no JavaScript source to edit — the only Node project is the
+> Playwright suite.
 
-## Repository Layout
+## Repository layout
 
-- `backend/` — Axum server. `backend/src/main.rs` builds the `Router`, serves the WASM
-  frontend from `frontend/pkg` (via `ServeDir`/`ServeFile` fallback) and static assets
-  from `backend/static`. Feature handlers live in `backend/src/handlers/`.
-- `frontend/` — Leptos client-side-rendered WASM app. `frontend/src/lib.rs` mounts the
-  `Home`/`Room` routes. Feature modules live directly under `frontend/src/` (e.g.
-  `chat.rs`, `polls.rs`, `whiteboard.rs`, `settings.rs`) and UI widgets under
-  `frontend/src/components_ui/`.
-- `shared/` — Serde types shared between frontend and backend (`shared/src/lib.rs`).
-- `tests/e2e/` — Playwright end-to-end parity suite.
-- `build.sh`, `Makefile`, `Cargo.toml` — workspace build tooling and manifest.
+| Path | What it contains |
+|---|---|
+| `backend/` | Axum server. `src/main.rs` builds the router and state; `src/handlers/` holds one module per feature; `src/api.rs` re-exports the route handlers; `static/` holds the stylesheet |
+| `frontend/` | Leptos client-side-rendered WASM app. Feature modules at `src/`, reusable widgets under `src/components_ui/`, pages under `src/pages/` |
+| `shared/` | `serde` types for both sides of the WebSocket (`src/lib.rs`) |
+| `tests/e2e/` | Playwright suites, including the screenshot gallery and the contrast audit |
+| `tests/screenshots/` | Generated PNG gallery referenced by the README |
+| `docs/` | Architecture, development and feature documentation |
+| `build.sh`, `Makefile`, `Cargo.toml` | Build tooling and the workspace manifest |
 
-## Development Commands
+## Commands
 
-Run all of these from the repository root.
+Run everything from the repository root.
 
-### Build
 ```sh
-bash build.sh                 # builds the WASM frontend to frontend/pkg + copies index.html
-cargo run -p backend          # serves the app on :3000
+bash build.sh                            # WASM + bindings → frontend/pkg, copies index.html
+cargo run -p backend                     # serves http://localhost:3000
+cargo test --workspace                   # 102 unit tests
+cargo fmt --all -- --check               # formatting check
+cargo clippy --workspace -- -D warnings  # lints (warnings are errors)
+
+cd tests/e2e && npx playwright test                        # full e2e suite
+cd tests/e2e && npx playwright test screenshot-gallery.spec.ts   # regenerate README images
+cd tests/e2e && npx playwright test contrast-audit.spec.ts       # dialog legibility audit
 ```
 
-### Test
-```sh
-cargo test --workspace        # unit tests
-cd tests/e2e && npx playwright test   # end-to-end parity suite
+Environment notes:
+
+* `pkg-config` and OpenSSL headers are required because the host build of `frontend` links
+  OpenSSL through `reqwest`. Without them `cargo test` fails with an `openssl-sys` error.
+  Use `cargo test -p shared` or `-p backend` to avoid building the frontend for the host.
+* The Playwright suite refuses to start if something already listens on port 3000.
+
+## Architecture in one minute
+
+One WebSocket at `/ws/chat` carries everything: chat, polls, whiteboard strokes, breakout
+transitions, moderation, remote-control signalling and WebRTC SDP/ICE. Messages are
+`shared::ClientMessage` and `shared::ServerMessage` — a single Rust enum each, compiled
+into both the WASM client and the native server, so protocol drift is a compile error.
+
+* Media is a peer-to-peer WebRTC mesh; the server only relays signalling and room events.
+* Room state is in-memory behind mutexes, fanned out over a `tokio::sync::broadcast`
+  channel, plus a direct channel per socket for messages addressed to one client.
+* Static directories resolve against `env!("CARGO_MANIFEST_DIR")`, so the binary serves the
+  client regardless of the process working directory.
+* The client is Leptos CSR (no SSR). One `active_panel` signal makes the chat,
+  participants and files panels mutually exclusive; at ≤ 768 px the panel starts closed.
+
+See `docs/ARCHITECTURE.md` for the full picture.
+
+## Conventions
+
+### Commit messages
+
+[Conventional Commits](https://www.conventionalcommits.org) with a scope:
+
+```
+feat(chat): add message reactions
+fix(webrtc): negotiate ICE before SDP answer
+docs(readme): document the screenshot gallery
 ```
 
-### Format / Lint
-```sh
-cargo fmt --all -- --check
-cargo clippy --workspace -- -D warnings
-```
+Types in use: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`,
+`style`, `test`.
 
-## Architecture Overview
+### Rust
 
-### Workspace
-The root `Cargo.toml` declares the workspace with `members = ["backend", "frontend",
-"shared"]` and `resolver = "2"`. Inter-crate dependencies use `path = "../shared"` style
-relative paths, which stay valid because the directory layout under the root is preserved.
+* Run `cargo fmt` and `cargo clippy --workspace -- -D warnings` before committing.
+* Put unit tests in a `#[cfg(test)] mod tests` block beside the code they cover.
+* When you add a `ClientMessage` or `ServerMessage` variant, handle it explicitly in the
+  dispatch `match` in `backend/src/handlers/ws.rs` — the compiler will point you there.
+* Prefer adding a module under `frontend/src/` (or `components_ui/`) over growing
+  `pages/room.rs`, which already composes a large number of dialogs.
 
-### Frontend (Leptos CSR)
-- `frontend/src/lib.rs` is the mount point and router (no SSR).
-- State is managed in `frontend/src/state.rs` with handlers in `state_handlers.rs`.
-- WebRTC/media logic lives in `webrtc.rs` and `media.rs`.
-- i18n is hardcoded (EN/ID) in `i18n.rs`; settings persist via `localStorage` in `storage.rs`.
-- Feature modules: `chat.rs`, `polls.rs`, `whiteboard.rs`, `reactions.rs`, `settings.rs`,
-  `participants.rs`, `remote_control.rs`, `virtual_background.rs`, `analytics.rs`, etc.
-- UI components under `frontend/src/components_ui/`.
+### Styling
 
-### Backend (Axum)
-- `backend/src/main.rs` creates a `broadcast` channel managing participants, polls,
-  whiteboard actions, chat history, breakout rooms, remote-control sessions, and more.
-- WebSocket messaging is handled in `backend/src/handlers/ws.rs`; route handlers live per
-  feature in `backend/src/handlers/`.
-- Static paths are resolved against `CARGO_MANIFEST_DIR` so the binary serves the frontend
-  regardless of the working directory.
+All CSS lives in `backend/static/styles.css`, driven by the custom properties on `:root`
+(`--bg-surface`, `--text-primary`, `--primary-color`, `--radius-*`, `--shadow-*`, …). Use
+those tokens rather than literal colours: hardcoded hex values are what produced the
+near-white-on-white dialog bugs, and the contrast audit will now fail the build for them.
+Responsive rules belong in the `@media` blocks at the bottom of the file (768 px, 480 px).
 
-### Shared Types
-- `shared/src/lib.rs` defines the serde types exchanged over the WebSocket (participants,
-  polls, draw actions, room configs, chat messages, server messages).
+## Testing expectations
 
-## Code Style and Standards
+* A pure-logic change should come with a unit test.
+* A UI behaviour change should come with a Playwright spec in `tests/e2e/`.
+* A new screen should be added to `screenshot-gallery.spec.ts` and referenced from the
+  README. Keep the numbered file-name ordering intact.
+* If you change CSS or dialog markup, run `contrast-audit.spec.ts`.
+* Never commit a screenshot you have not looked at. Blank, white or unstyled captures are
+  the failure mode this suite exists to catch — regenerate and fix the UI first.
 
-### Conventional Commits
-Follow [Conventional Commits](https://www.conventionalcommits.org) with scopes:
-```
-feat(chat): description
-fix(webrtc): description
-docs(readme): description
-```
-Available types: build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test.
+## CI
 
-### Rust Conventions
-- Run `cargo fmt` and `cargo clippy --workspace -- -D warnings` before committing.
-- Use clear, purposeful module organization; add unit tests alongside logic where valuable.
-- Keep `no_std`-style purity in `shared` only where it is already established.
+`.github/workflows/rust-ci.yml` runs two jobs:
 
-## Testing and Quality Assurance
+1. `checks` — `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`,
+   `cargo test --workspace`.
+2. `e2e` — `build.sh` plus the Playwright suite.
 
-- The single Playwright suite is `tests/e2e` and is serial (`workers: 1`); it boots the app
-  from the repo root via the `webServer` config.
-- CI (`.github/workflows/rust-ci.yml`) runs `checks` (fmt, clippy, tests) and `e2e`
-  (build + Playwright) jobs sequentially.
-- `MIGRATION.md` documents the feature migration gap matrix and parity status.
+Dependabot tracks the `cargo` ecosystem and the `npm` ecosystem used by `tests/e2e`.
 
-## External Resources
-- [Juncto Handbook](https://juncto.github.io/handbook/) - Comprehensive documentation
-- [Community Forum](https://community.juncto.org/) - Ask questions and get support
-- [Architecture Guide](https://juncto.github.io/handbook/docs/architecture) - System overview
-- [Contributing Guidelines](https://juncto.github.io/handbook/docs/dev-guide/dev-guide-contributing/) - Detailed contribution process
+## External resources
+
+* [Juncto Handbook](https://juncto.github.io/handbook/) — user and developer documentation
+* [Community Forum](https://community.juncto.org/) — questions and support
+* [Contributing Guidelines](https://juncto.github.io/handbook/docs/dev-guide/dev-guide-contributing/) — the upstream contribution process

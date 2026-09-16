@@ -13,7 +13,7 @@ pub fn FileSharing(messages: ReadSignal<Vec<ChatMessage>>) -> impl IntoView {
     });
 
     view! {
-        <div class="file-sharing" style="padding: 10px; width: 100%;">
+        <div class="file-sharing">
             <h3 style="margin-top: 0;">"Shared Files"</h3>
             <Show when=move || files.get().is_empty() fallback=move || view! {
                 <ul style="list-style: none; padding: 0;">
@@ -40,18 +40,18 @@ pub fn FileSharing(messages: ReadSignal<Vec<ChatMessage>>) -> impl IntoView {
                             let filename_display = a.filename.clone();
                             let filename_for_dropbox = a.filename.clone();
                             view! {
-                                <li style="padding: 10px; border: 1px solid #eee; border-radius: 4px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px;">
+                                <li class="file-sharing-item">
                                     <div style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{filename_display}</div>
-                                    <div style="font-size: 0.8em; color: #666;">
+                                    <div class="file-sharing-meta">
                                         "Shared by " {user_id} " at " {ts}
                                     </div>
-                                    <div style="font-size: 0.8em; color: #666;">
+                                    <div class="file-sharing-meta">
                                         {(a.size as f64 / 1024.0).round()} " KB"
                                     </div>
                                     <div style="display: flex; gap: 5px;">
                                         <button
+                                            class="btn btn-primary btn-sm"
                                             on:click=download
-                                            style="padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; align-self: flex-start;"
                                         >
                                             "Download"
                                         </button>
@@ -62,8 +62,7 @@ pub fn FileSharing(messages: ReadSignal<Vec<ChatMessage>>) -> impl IntoView {
                                                     dropbox_svc.save_file(filename_for_dropbox.clone());
                                                 }
                                             }
-                                            class="save-dropbox-btn"
-                                            style="padding: 4px 8px; background: #0061ff; color: white; border: none; border-radius: 4px; cursor: pointer; align-self: flex-start;"
+                                            class="save-dropbox-btn btn btn-primary btn-sm"
                                         >
                                             "Save to Dropbox"
                                         </button>
@@ -74,7 +73,7 @@ pub fn FileSharing(messages: ReadSignal<Vec<ChatMessage>>) -> impl IntoView {
                     />
                 </ul>
             }>
-                <p style="color: #666; font-style: italic;">"No files shared yet."</p>
+                <p class="file-sharing-empty">"No files shared yet."</p>
             </Show>
         </div>
     }

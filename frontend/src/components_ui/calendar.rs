@@ -19,12 +19,12 @@ pub fn CalendarList(
 
     view! {
         <div class="calendar-list-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div class="calendar-list-dialog" style="background: #2a2a2a; padding: 20px; border-radius: 8px; width: 400px; color: white; max-height: 80vh; display: flex; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">"Upcoming Meetings"</h3>
+            <div class="calendar-list-dialog" style="width: 400px;">
+                <div class="modal-header">
+                    <h3>"Upcoming Meetings"</h3>
                     <button
+                        class="modal-close-btn"
                         on:click=move |_| on_close.call(())
-                        style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer;"
                     >
                         "×"
                     </button>
@@ -33,7 +33,7 @@ pub fn CalendarList(
                 <div style="flex: 1; overflow-y: auto; margin-bottom: 15px;">
                     {move || if events.get().is_empty() {
                         view! {
-                            <div style="text-align: center; color: #999; padding: 20px;">
+                            <div class="calendar-empty">
                                 "No upcoming events"
                             </div>
                         }.into_view()
@@ -48,7 +48,7 @@ pub fn CalendarList(
                                             key=|(i, _)| *i
                                             children=move |(_i, evt)| {
                                                 view! {
-                                                    <li style="background: #333; padding: 10px; border-radius: 4px; border-left: 4px solid #007bff;">
+                                                    <li class="calendar-event">
                                                         {evt}
                                                     </li>
                                                 }
@@ -63,8 +63,8 @@ pub fn CalendarList(
 
                 <div style="display: flex; justify-content: flex-end;">
                     <button
+                        class="btn btn-primary"
                         on:click=move |_| on_refresh.call(())
-                        style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;"
                     >
                         "Refresh"
                     </button>

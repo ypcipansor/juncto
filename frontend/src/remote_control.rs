@@ -168,9 +168,11 @@ pub fn RemoteControlLayer() -> impl IntoView {
                 let rc_allow = rc.clone();
                 let rc_deny = rc.clone();
                 view! {
-                    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
-                        <div style="background: white; color: black; padding: 20px; border-radius: 8px; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                            <h3 style="margin-top: 0;">"Remote Control Request"</h3>
+                    <div class="modal-overlay" style="z-index: 10000;">
+                        <div class="modal-content" style="max-width: 400px;">
+                            <div class="modal-header">
+                                <h3>"Remote Control Request"</h3>
+                            </div>
                             <p>
                                 {move || {
                                     let name = rc_for_name
@@ -183,14 +185,14 @@ pub fn RemoteControlLayer() -> impl IntoView {
                             </p>
                             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                                 <button
+                                    class="btn btn-secondary"
                                     on:click=move |_| rc_deny.respond_to_incoming_request(false)
-                                    style="padding: 8px 16px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px;"
                                 >
                                     "Deny"
                                 </button>
                                 <button
+                                    class="btn btn-primary"
                                     on:click=move |_| rc_allow.respond_to_incoming_request(true)
-                                    style="padding: 8px 16px; border: none; background: #007bff; color: white; cursor: pointer; border-radius: 4px;"
                                 >
                                     "Allow"
                                 </button>

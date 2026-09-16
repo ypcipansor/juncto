@@ -211,47 +211,47 @@ pub fn SettingsDialog(
     view! {
         <Show when=move || show.get()>
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-                <div class="modal-content" style="background: white; color: #333; padding: 20px; border-radius: 8px; width: 500px; max-width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div class="modal-content" style="width: 500px;">
+                    <div class="modal-header">
                         <h3>{move || t("settings")}</h3>
-                        <button id="close-settings-btn" class="close-btn" on:click=move |_| on_close.call(()) style="background: none; border: none; font-size: 20px; cursor: pointer;">"×"</button>
+                        <button id="close-settings-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
                     </div>
 
-                    <div class="tabs" style="display: flex; border-bottom: 1px solid #ccc; margin-bottom: 20px;">
+                    <div class="tabs">
                         <button
                             on:click=move |_| set_active_tab.set("profile")
-                            style=move || format!("padding: 10px; border: none; background: none; cursor: pointer; border-bottom: 2px solid {}", if active_tab.get() == "profile" { "#007bff" } else { "transparent" })
+                            class=move || if active_tab.get() == "profile" { "modal-tab-btn active" } else { "modal-tab-btn" }
                         >
                             {move || t("profile")}
                         </button>
                         <button
                             on:click=move |_| set_active_tab.set("devices")
-                            style=move || format!("padding: 10px; border: none; background: none; cursor: pointer; border-bottom: 2px solid {}", if active_tab.get() == "devices" { "#007bff" } else { "transparent" })
+                            class=move || if active_tab.get() == "devices" { "modal-tab-btn active" } else { "modal-tab-btn" }
                         >
                             {move || t("devices")}
                         </button>
                         <button
                             on:click=move |_| set_active_tab.set("integrations")
-                            style=move || format!("padding: 10px; border: none; background: none; cursor: pointer; border-bottom: 2px solid {}", if active_tab.get() == "integrations" { "#007bff" } else { "transparent" })
+                            class=move || if active_tab.get() == "integrations" { "modal-tab-btn active" } else { "modal-tab-btn" }
                         >
                             {move || t("integrations")}
                         </button>
                         <button
                             on:click=move |_| set_active_tab.set("more")
-                            style=move || format!("padding: 10px; border: none; background: none; cursor: pointer; border-bottom: 2px solid {}", if active_tab.get() == "more" { "#007bff" } else { "transparent" })
+                            class=move || if active_tab.get() == "more" { "modal-tab-btn active" } else { "modal-tab-btn" }
                         >
                             "More"
                         </button>
                         <Show when=move || is_host.map(|h| h.get()).unwrap_or(false)>
                             <button
                                 on:click=move |_| set_active_tab.set("branding")
-                                style=move || format!("padding: 10px; border: none; background: none; cursor: pointer; border-bottom: 2px solid {}", if active_tab.get() == "branding" { "#007bff" } else { "transparent" })
+                                class=move || if active_tab.get() == "branding" { "modal-tab-btn active" } else { "modal-tab-btn" }
                             >
                                 "Branding"
                             </button>
                             <button
                                 on:click=move |_| set_active_tab.set("moderator")
-                                style=move || format!("padding: 10px; border: none; background: none; cursor: pointer; border-bottom: 2px solid {}", if active_tab.get() == "moderator" { "#007bff" } else { "transparent" })
+                                class=move || if active_tab.get() == "moderator" { "modal-tab-btn active" } else { "modal-tab-btn" }
                             >
                                 {move || t("moderator")}
                             </button>
@@ -283,7 +283,7 @@ pub fn SettingsDialog(
                                     id="settings-display-name"
                                     prop:value=move || display_name.get()
                                     on:input=move |ev| set_display_name.set(event_target_value(&ev))
-                                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                                    style="width: 100%;"
                                 />
                             </div>
                             <div class="form-group" style="margin-bottom: 15px;">
@@ -294,7 +294,7 @@ pub fn SettingsDialog(
                                     maxlength="2048"
                                     prop:value=move || avatar_url.get()
                                     on:input=move |ev| set_avatar_url.set(event_target_value(&ev))
-                                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                                    style="width: 100%;"
                                 />
                             </div>
                             <button
@@ -325,14 +325,14 @@ pub fn SettingsDialog(
                                     }
                                     on_close.call(());
                                 }
-                                style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                                class="btn btn-primary"
                             >
                                 {move || t("save_profile")}
                             </button>
                         </Show>
                         <Show when=move || active_tab.get() == "devices">
                             <Show when=move || error_msg.get().is_some()>
-                                <div style="color: red; margin-bottom: 10px; padding: 10px; background: #ffeaea; border-radius: 4px;">
+                                <div class="settings-error">
                                     {move || error_msg.get().unwrap()}
                                 </div>
                             </Show>
@@ -340,7 +340,7 @@ pub fn SettingsDialog(
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label style="display: block; margin-bottom: 5px;">{move || t("camera")}</label>
                                 <select
-                                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                                    style="width: 100%;"
                                     on:change=move |ev| {
                                         let val = event_target_value(&ev);
                                         if val.is_empty() {
@@ -372,7 +372,7 @@ pub fn SettingsDialog(
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label style="display: block; margin-bottom: 5px;">{move || t("video_quality")}</label>
                                 <select
-                                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                                    style="width: 100%;"
                                     on:change=move |ev| {
                                         set_video_quality.set(event_target_value(&ev));
                                         start_preview.dispatch(());
@@ -396,7 +396,7 @@ pub fn SettingsDialog(
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label style="display: block; margin-bottom: 5px;">{move || t("microphone")}</label>
                                 <select
-                                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                                    style="width: 100%;"
                                     on:change=move |ev| {
                                         let val = event_target_value(&ev);
                                         if val.is_empty() {
@@ -426,7 +426,7 @@ pub fn SettingsDialog(
                                 </select>
                             </div>
 
-                            <div class="preview" style="margin-top: 20px; border: 1px solid #ccc; height: 200px; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                            <div class="preview" style="margin-top: 20px; height: 200px;">
                                 <video
                                     node_ref=video_ref
                                     autoplay
@@ -435,7 +435,7 @@ pub fn SettingsDialog(
                                     style="max-width: 100%; max-height: 100%;"
                                 />
                             </div>
-                            <p style="color: #666; font-size: 0.8em; margin-top: 5px;">{move || t("preview_only")}</p>
+                            <p class="settings-hint">{move || t("preview_only")}</p>
 
                             <div style="margin-top: 15px; text-align: right;">
                                 <button
@@ -445,7 +445,7 @@ pub fn SettingsDialog(
                                         }
                                         on_close.call(());
                                     }
-                                    style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                                    class="btn btn-success"
                                 >
                                     {move || t("apply_devices")}
                                 </button>
@@ -507,7 +507,7 @@ pub fn SettingsDialog(
                                     let (connected, set_connected) = create_signal(false);
                                     let s_clone = s.to_string();
                                     view! {
-                                        <div class="integration-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #eee; border-radius: 4px;">
+                                        <div class="integration-item">
                                             <span>{s}</span>
                                             <button
                                                 on:click={
@@ -526,7 +526,7 @@ pub fn SettingsDialog(
                                                         }
                                                     }
                                                 }
-                                                style=move || format!("padding: 5px 10px; background: {}; color: white; border: none; border-radius: 4px; cursor: pointer;", if connected.get() { "#dc3545" } else { "#007bff" })
+                                                class=move || if connected.get() { "btn btn-danger btn-sm" } else { "btn btn-primary btn-sm" }
                                             >
                                                 {move || if connected.get() { "Disconnect".to_string() } else { t("connect") }}
                                             </button>
@@ -561,7 +561,7 @@ pub fn SettingsDialog(
                                     id="branding-logo-url"
                                     prop:value=logo_url
                                     on:input=move |ev| set_logo_url.set(event_target_value(&ev))
-                                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                                    style="width: 100%;"
                                 />
                             </div>
                             <button
@@ -576,7 +576,7 @@ pub fn SettingsDialog(
                                         });
                                     }
                                 }
-                                style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                                class="btn btn-primary"
                             >
                                 "Apply Branding"
                             </button>
@@ -600,7 +600,7 @@ pub fn SettingsDialog(
                                                 cb.call(subject.get());
                                             }
                                         }
-                                        style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                                        class="btn btn-success"
                                     >
                                         "Update"
                                     </button>
@@ -628,9 +628,9 @@ pub fn SettingsDialog(
                                     placeholder="Password (optional)"
                                     on:input=move |ev| set_lock_password.set(event_target_value(&ev))
                                     prop:value=move || lock_password.get()
-                                    style="margin-top: 8px; padding: 6px 10px; width: 100%; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+                                    style="margin-top: 8px; width: 100%;"
                                 />
-                                <p style="font-size: 12px; color: #666; margin-top: 4px;">
+                                <p class="settings-hint" style="margin-top: 4px;">
                                     "Set a password before locking to require it for new joins."
                                 </p>
                             </div>

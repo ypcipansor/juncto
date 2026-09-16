@@ -51,13 +51,13 @@ pub fn InviteDialog(
     view! {
         <Show when=move || show.get()>
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000;">
-                <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div class="modal-content" style="width: 400px;">
+                    <div class="modal-header">
                         <h3>{move || t("invite_people")}</h3>
-                        <button on:click=move |_| on_close.call(()) style="background: none; border: none; font-size: 20px; cursor: pointer;">"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
                     </div>
 
-                    <p style="margin-bottom: 10px; color: #666;">
+                    <p style="margin-bottom: 10px;">
                         {move || t("share_link_hint")}
                     </p>
 
@@ -66,11 +66,11 @@ pub fn InviteDialog(
                             type="text"
                             readonly
                             prop:value=room_url
-                            style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background: #f9f9f9;"
+                            style="flex: 1;"
                         />
                         <button
+                            class="btn btn-primary"
                             on:click=copy_link
-                            style="padding: 8px 16px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;"
                         >
                             {move || t("copy_link")}
                         </button>

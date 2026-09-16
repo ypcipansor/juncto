@@ -184,8 +184,8 @@ pub fn Chat(
     };
 
     view! {
-        <div class="chat-inner-container" style="display: flex; flex-direction: column; height: 100%; width: 100%; padding: 10px;">
-            <div class="recipient-selector" style="margin-bottom: 10px;">
+        <div class="chat-inner-container">
+            <div class="recipient-selector chat-recipient-select">
                 <label>"To: "</label>
                 <select
                     on:change=move |ev| {
@@ -196,7 +196,6 @@ pub fn Chat(
                             set_recipient.set(Some(val));
                         }
                     }
-                    style="width: 100%; padding: 5px;"
                 >
                     <option value="">"Everyone"</option>
                     <For
@@ -216,7 +215,7 @@ pub fn Chat(
                     />
                 </select>
             </div>
-            <div class="messages" id="chat-messages" style="flex: 1; overflow-y: auto; height: 300px; border: 1px solid #eee; margin-bottom: 10px; padding: 5px;">
+            <div class="messages" id="chat-messages">
                 <ul>
                     <For
                         each=move || messages.get()
@@ -230,9 +229,9 @@ pub fn Chat(
                                 parts.iter().find(|p| p.id == msg.user_id).map(|p| p.name.clone()).unwrap_or(msg.user_id.clone())
                             };
 
-                            let mut style = if Some(msg.user_id.clone()) == my { "color: blue;" } else { "color: black;" };
+                            let mut style = if Some(msg.user_id.clone()) == my { "color: var(--primary-color);" } else { "color: var(--text-primary);" };
                             let private_indicator = if msg.recipient_id.is_some() {
-                                style = "color: purple;"; // Private msg style
+                                style = "color: #c084fc;"; // Private msg style
                                 "(Private) "
                             } else {
                                 ""
@@ -246,7 +245,7 @@ pub fn Chat(
 
                             view! {
                                 <li class="chat-message" style=style>
-                                    <small style="color: #999; margin-right: 5px;">"[" {time_str} "] "</small>
+                                    <small class="chat-message-time">"[" {time_str} "] "</small>
                                     <small>{private_indicator}</small>
                                     <strong>{sender_name}": "</strong>
                                     {move || {
@@ -302,7 +301,7 @@ pub fn Chat(
                     })/>
                 </div>
             </Show>
-            <div class="typing-indicator" style="height: 20px; font-style: italic; color: #666; font-size: 0.8em;">
+            <div class="typing-indicator">
                 {move || {
                     let users = typing_users.get();
                     let parts = participants.get();
@@ -310,8 +309,8 @@ pub fn Chat(
                     format_typing_indicator(&users, &parts, &my)
                 }}
             </div>
-            <div class="input-area" style="display: flex; flex-direction: column; gap: 5px;">
-                <div style="display: flex; gap: 5px;">
+            <div class="input-area">
+                <div class="chat-input-row">
                     <input
                         type="text"
                         id="chat-input"
@@ -324,19 +323,20 @@ pub fn Chat(
                         }
                         placeholder=move || if is_visitor.get() { "Visitor Mode: Read-only" } else { "Type a message..." }
                         disabled=move || is_visitor.get()
-                        style="flex: 1;"
                     />
                     <button
+                        class="chat-send-btn"
                         on:click=move |ev| send(ev.unchecked_into())
                         disabled=move || !is_connected.get() || is_visitor.get()
-                        style="width: 60px;">
+                    >
                         {move || if is_connected.get() { "Send" } else { "..." }}
                     </button>
                     <button
                         id="giphy-toggle-btn"
+                        class="chat-gif-btn"
                         on:click=move |_| set_show_giphy.update(|v| *v = !*v)
                         disabled=move || is_visitor.get()
-                        style="width: 40px; background: #555; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    >
                         "GIF"
                     </button>
                 </div>
@@ -349,7 +349,7 @@ pub fn Chat(
                             style="width: 100%; font-size: 0.8em;"
                          />
                          {move || if let Some(f) = selected_file.get() {
-                             view! { <small style="color: green;">" Selected: " {f.filename}</small> }.into_view()
+                             view! { <small class="selected-file-hint">" Selected: " {f.filename}</small> }.into_view()
                          } else {
                              view! { <span/> }.into_view()
                          }}

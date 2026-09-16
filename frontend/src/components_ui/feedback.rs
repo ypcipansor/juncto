@@ -51,10 +51,10 @@ pub fn FeedbackDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl In
     view! {
         <Show when=move || show.get()>
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000;">
-                <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div class="modal-content" style="width: 400px;">
+                    <div class="modal-header">
                         <h3>{move || t("feedback")}</h3>
-                        <button on:click=move |_| on_close.call(()) style="background: none; border: none; font-size: 20px; cursor: pointer;">"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
                     </div>
 
                     <div style="margin-bottom: 20px; display: flex; justify-content: center; gap: 10px;">
@@ -64,8 +64,9 @@ pub fn FeedbackDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl In
                             children=move |i| {
                                 view! {
                                     <span
+                                        class="feedback-star"
                                         on:click=move |_| set_stars.set(i)
-                                        style=move || format!("cursor: pointer; font-size: 30px; color: {};", if stars.get() >= i { "#ffc107" } else { "#ccc" })
+                                        style=move || format!("cursor: pointer; font-size: 30px; color: {};", if stars.get() >= i { "#fbbf24" } else { "var(--text-muted)" })
                                     >
                                         "★"
                                     </span>
@@ -78,14 +79,13 @@ pub fn FeedbackDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl In
                         prop:value=comment
                         on:input=move |ev| set_comment.set(event_target_value(&ev))
                         placeholder=move || t("feedback_placeholder")
-                        style="width: 100%; height: 100px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; box-sizing: border-box;"
+                        style="width: 100%; height: 100px; margin-bottom: 20px;"
                     />
 
                     <div style="text-align: right;">
                         <button
-                            class="submit-feedback-btn" // Added class for E2E testing
+                            class="submit-feedback-btn btn btn-primary"
                             on:click=submit
-                            style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;"
                         >
                             {move || t("submit")}
                         </button>

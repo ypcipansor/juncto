@@ -68,10 +68,10 @@ pub fn LinkSalesforceDialog(
     view! {
         <Show when=move || show.get()>
             <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-                <div class="modal-content" style="background: white; color: #333; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%;">
-                    <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <div class="modal-content" style="width: 400px;">
+                    <div class="modal-header">
                         <h3>"Salesforce Integration"</h3>
-                        <button on:click=move |_| on_close_sv.with_value(|cb| cb.call(())) style="background: none; border: none; font-size: 20px; cursor: pointer;">"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close_sv.with_value(|cb| cb.call(()))>"×"</button>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 15px;">
@@ -79,7 +79,7 @@ pub fn LinkSalesforceDialog(
                         <select
                             on:change=move |ev| set_object_type.set(event_target_value(&ev))
                             prop:value=object_type
-                            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                            style="width: 100%;"
                         >
                             <option value="Lead">"Lead"</option>
                             <option value="Opportunity">"Opportunity"</option>
@@ -95,7 +95,7 @@ pub fn LinkSalesforceDialog(
                             placeholder="e.g. 00Q... or 006..."
                             on:input=move |ev| set_object_id.set(event_target_value(&ev))
                             prop:value=object_id
-                            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+                            style="width: 100%;"
                         />
                     </div>
 
@@ -103,23 +103,23 @@ pub fn LinkSalesforceDialog(
                         <Show when=move || config.get().is_linked>
                             <button
                                 id="unlink-salesforce-btn"
+                                class="btn btn-danger"
                                 on:click=move |_| {
                                     service_sv.with_value(|s| s.unlink_object());
                                     on_close_sv.with_value(|cb| cb.call(()));
                                 }
-                                style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;"
                             >
                                 "Unlink"
                             </button>
                         </Show>
                         <button
                             id="link-salesforce-btn"
+                            class="btn btn-primary"
                             on:click=move |_| {
                                 service_sv.with_value(|s| s.link_object(object_id.get(), object_type.get()));
                                 on_close_sv.with_value(|cb| cb.call(()));
                             }
                             disabled=move || object_id.get().is_empty()
-                            style=move || format!("padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: {}; opacity: {};", if object_id.get().is_empty() { "not-allowed" } else { "pointer" }, if object_id.get().is_empty() { "0.5" } else { "1" })
                         >
                             {move || if config.get().is_linked { "Update Link" } else { "Link Meeting" }}
                         </button>
