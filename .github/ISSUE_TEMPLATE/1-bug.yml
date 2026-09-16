@@ -24,16 +24,10 @@ body:
         - label: Firefox
         - label: Safari
         - label: Other desktop browser
-        - label: Android browser
-        - label: iOS browser
-        - label: Electron app
-        - label: Android mobile app
-        - label: iOS mobile app
-        - label: Custom app using a mobile SDK
   - type: input
     attributes:
-      label: Browser / app / sdk version
-      description: Please provide the version of the browser / app / sdk where the problem manifests.
+      label: Browser version
+      description: Please provide the version of the browser where the problem manifests.
     validations:
       required: true
   - type: textarea
@@ -44,9 +38,9 @@ body:
   - type: checkboxes
     attributes:
       label: Reproducibility
-      description: Does the problem reproduce on meet.jit.si using Chrome, Firefox or the official mobile apps?
+      description: Does the problem reproduce against a locally-run instance of this repository (junto) using Chrome or Firefox?
       options:
-        - label: The problem is reproducible on meet.jit.si
+        - label: The problem is reproducible on a self-hosted instance built from this repository
   - type: textarea
     attributes:
       label: More details?

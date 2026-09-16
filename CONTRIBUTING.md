@@ -15,6 +15,16 @@ Ready to get started? Head over to our [Juncto Handbook](https://juncto.github.i
 Have questions or need help? Join our community discussions on the [Juncto Forum](https://community.juncto.org/) where contributors and maintainers can assist you.
 
 ### ❗️Additional Note
-Before sending us your code, double-check that it meets our coding standards. You can do this by running a command: `npm run lint`. If there are any issues, don't worry! You can fix them by running: `npm run lint-fix`. Once your code passes these checks, feel free to submit your pull request.
+Before sending us your code, double-check that it meets our coding standards. This is
+a Rust workspace, so verify your changes with the following commands from the repo root:
+
+```sh
+cargo fmt --all -- --check        # formatting
+cargo clippy --workspace -- -D warnings   # linting
+cargo test --workspace           # unit tests
+cd tests/e2e && npx playwright test       # end-to-end tests (as applicable)
+```
+
+Once your code passes these checks, feel free to submit your pull request.
 
 **Happy coding!**
