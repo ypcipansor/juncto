@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::ev;
+use leptos::prelude::*;
 
 /// Right-click context menu opened on a video tile.
 /// Shows participant-scoped actions: pin/unpin, volume fader, kick (host only).
@@ -15,10 +16,10 @@ pub fn VideoContextMenu(
     on_volume: Callback<f64>,
     on_close: Callback<()>,
 ) -> impl IntoView {
-    let close = move |_| on_close.call(());
+    let close = move |_| on_close.run(());
     window_event_listener(ev::keydown, move |ev| {
         if ev.key() == "Escape" {
-            on_close.call(())
+            on_close.run(())
         }
     });
 
@@ -29,7 +30,7 @@ pub fn VideoContextMenu(
                 class="video-context-menu"
                 style=move || format!("left: {}px; top: {}px;", x.get(), y.get())
             >
-                <div class="context-menu-item" on:click=move |_| { on_pin.call(()); on_close.call(()); }>
+                <div class="context-menu-item" on:click=move |_| { on_pin.run(()); on_close.run(()); }>
                     {move || if is_pinned.get() { "Unpin participant" } else { "Pin participant" }}
                 </div>
                 <div class="context-menu-item" on:click=move |_| {} >
@@ -43,13 +44,13 @@ pub fn VideoContextMenu(
                         class="context-menu-slider"
                         on:input=move |ev| {
                             if let Ok(v) = event_target_value(&ev).parse::<f64>() {
-                                on_volume.call(v);
+                                on_volume.run(v);
                             }
                         }
                     />
                 </div>
                 <Show when=move || is_host.get()>
-                    <div class="context-menu-item danger" on:click=move |_| { on_kick.call(()); on_close.call(()); }>
+                    <div class="context-menu-item danger" on:click=move |_| { on_kick.run(()); on_close.run(()); }>
                         "Kick participant"
                     </div>
                 </Show>

@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use shared::ChatMessage;
 use wasm_bindgen::JsCast;
 
@@ -86,7 +86,8 @@ mod tests {
 
     #[test]
     fn test_file_filtering_logic() {
-        let _runtime = create_runtime();
+        let owner = Owner::new();
+        owner.set();
         let m1 = ChatMessage {
             user_id: "u1".to_string(),
             content: "hello".to_string(),
@@ -109,7 +110,7 @@ mod tests {
             room_id: None,
         };
 
-        let messages = create_rw_signal(vec![m1, m2]);
+        let messages = RwSignal::new(vec![m1, m2]);
 
         // This is a simple logic test that mirrors the derive in component
         let files: Vec<_> = messages

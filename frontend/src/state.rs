@@ -1,18 +1,21 @@
-use crate::analytics::{provide_analytics_context, use_analytics, AnalyticsService};
-use crate::components_ui::toast::{use_toast, ToastType};
+use crate::analytics::{AnalyticsService, provide_analytics_context, use_analytics};
+use crate::cleanup::on_cleanup_local;
+use crate::components_ui::toast::{ToastType, use_toast};
 use crate::dropbox::provide_dropbox_context;
 use crate::face_landmarks::{
-    provide_face_landmarks_context, use_face_landmarks, FaceLandmarksService,
+    FaceLandmarksService, provide_face_landmarks_context, use_face_landmarks,
 };
-use crate::media::{get_display_media, get_user_media, AudioMonitor};
+use crate::media::{AudioMonitor, get_display_media, get_user_media};
 use crate::remote_control::{
-    provide_remote_control_context, use_remote_control, RemoteControlService,
+    RemoteControlService, provide_remote_control_context, use_remote_control,
 };
 use crate::salesforce::provide_salesforce_context;
-use crate::state_handlers::{handle_server_message, HandlerContext};
+use crate::state_handlers::{HandlerContext, handle_server_message};
 use crate::storage::{load_settings, update_setting};
 use crate::webrtc::WebRTCManager;
-use leptos::*;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
+use send_wrapper::SendWrapper;
 use serde::{Deserialize, Serialize};
 use shared::{
     ChatMessage, ClientMessage, DrawAction, FileAttachment, Participant, Poll, ServerMessage,
@@ -20,8 +23,8 @@ use shared::{
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{MediaStream, MessageEvent, WebSocket};
 
 #[derive(Clone, PartialEq, Debug)]
@@ -212,102 +215,100 @@ pub fn use_room_state() -> RoomState {
     let settings = load_settings();
     let toast_ctx = use_toast();
 
-    let (current_state, set_current_state) = create_signal(RoomConnectionState::Prejoin);
-    let (messages, set_messages) = create_signal(Vec::<ChatMessage>::new());
-    let (typing_users, set_typing_users) = create_signal(HashSet::<String>::new());
-    let (breakout_rooms, set_breakout_rooms) = create_signal(Vec::<shared::BreakoutRoom>::new());
-    let (current_room_id, set_current_room_id) = create_signal(None::<String>);
-    let (participants, set_participants) = create_signal(Vec::<Participant>::new());
-    let (knocking_participants, set_knocking_participants) =
-        create_signal(Vec::<Participant>::new());
+    let (current_state, set_current_state) = signal(RoomConnectionState::Prejoin);
+    let (messages, set_messages) = signal(Vec::<ChatMessage>::new());
+    let (typing_users, set_typing_users) = signal(HashSet::<String>::new());
+    let (breakout_rooms, set_breakout_rooms) = signal(Vec::<shared::BreakoutRoom>::new());
+    let (current_room_id, set_current_room_id) = signal(None::<String>);
+    let (participants, set_participants) = signal(Vec::<Participant>::new());
+    let (knocking_participants, set_knocking_participants) = signal(Vec::<Participant>::new());
 
-    let (ws, set_ws) = create_signal(None::<WebSocket>);
-    let (is_connected, set_is_connected) = create_signal(false);
-    let (is_locked, set_is_locked) = create_signal(false);
-    let (password_required, set_password_required) = create_signal(false);
-    let (is_e2ee_enabled, set_is_e2ee_enabled) = create_signal(false);
-    let (_e2ee_key, set_e2ee_key) = create_signal(None::<String>);
-    let (is_lobby_enabled, set_is_lobby_enabled) = create_signal(false);
-    let (is_recording, set_is_recording) = create_signal(false);
-    let (is_subtitles_enabled, set_is_subtitles_enabled) = create_signal(false);
-    let (subtitles, set_subtitles) = create_signal(Vec::<(String, String, u64)>::new());
-    let (show_settings, set_show_settings) = create_signal(false);
-    let (is_authenticated, set_is_authenticated) = create_signal(false);
-    let (show_login_dialog, set_show_login_dialog) = create_signal(false);
-    let (auth_error, set_auth_error) = create_signal(None::<String>);
-    let (calendar_events, set_calendar_events) = create_signal(Vec::<String>::new());
-    let (show_calendar, set_show_calendar) = create_signal(false);
-    let (show_polls, set_show_polls) = create_signal(false);
-    let (show_shortcuts, set_show_shortcuts) = create_signal(false);
-    let (polls, set_polls) = create_signal(Vec::<Poll>::new());
-    let (last_reaction, set_last_reaction) = create_signal(None::<(String, String, u64)>);
-    let (show_whiteboard, set_show_whiteboard) = create_signal(false);
-    let (show_etherpad, set_show_etherpad) = create_signal(false);
-    let (whiteboard_history, set_whiteboard_history) = create_signal(Vec::<DrawAction>::new());
-    let (_last_draw_action, set_last_draw_action) = create_signal(None::<DrawAction>);
-    let (my_id, set_my_id) = create_signal(None::<String>);
-    let (local_stream, set_local_stream) = create_signal(None::<MediaStream>);
-    let (local_screen_stream, set_local_screen_stream) = create_signal(None::<MediaStream>);
-    let (is_muted, set_is_muted) = create_signal(false);
-    let (is_camera_off, set_is_camera_off) = create_signal(false);
-    let (shared_video_url, set_shared_video_url) = create_signal(None::<String>);
-    let (speaking_peers, set_speaking_peers) = create_signal(HashSet::<String>::new());
-    let (audio_monitor, set_audio_monitor) = create_signal(None::<AudioMonitor>);
-    let (show_speaker_stats, set_show_speaker_stats) = create_signal(false);
-    let (show_virtual_background, set_show_virtual_background) = create_signal(false);
-    let (show_feedback, set_show_feedback) = create_signal(false);
-    let (rtt, set_rtt) = create_signal(0u64);
-    let (audio_level, set_audio_level) = create_signal(0.0);
-    let (last_ping_time, set_last_ping_time) = create_signal(0f64);
-    let (selected_camera_id, set_selected_camera_id) = create_signal(settings.camera_id);
-    let (selected_mic_id, set_selected_mic_id) = create_signal(settings.mic_id);
+    let (ws, set_ws) = signal(None::<WebSocket>);
+    let (is_connected, set_is_connected) = signal(false);
+    let (is_locked, set_is_locked) = signal(false);
+    let (password_required, set_password_required) = signal(false);
+    let (is_e2ee_enabled, set_is_e2ee_enabled) = signal(false);
+    let (_e2ee_key, set_e2ee_key) = signal(None::<String>);
+    let (is_lobby_enabled, set_is_lobby_enabled) = signal(false);
+    let (is_recording, set_is_recording) = signal(false);
+    let (is_subtitles_enabled, set_is_subtitles_enabled) = signal(false);
+    let (subtitles, set_subtitles) = signal(Vec::<(String, String, u64)>::new());
+    let (show_settings, set_show_settings) = signal(false);
+    let (is_authenticated, set_is_authenticated) = signal(false);
+    let (show_login_dialog, set_show_login_dialog) = signal(false);
+    let (auth_error, set_auth_error) = signal(None::<String>);
+    let (calendar_events, set_calendar_events) = signal(Vec::<String>::new());
+    let (show_calendar, set_show_calendar) = signal(false);
+    let (show_polls, set_show_polls) = signal(false);
+    let (show_shortcuts, set_show_shortcuts) = signal(false);
+    let (polls, set_polls) = signal(Vec::<Poll>::new());
+    let (last_reaction, set_last_reaction) = signal(None::<(String, String, u64)>);
+    let (show_whiteboard, set_show_whiteboard) = signal(false);
+    let (show_etherpad, set_show_etherpad) = signal(false);
+    let (whiteboard_history, set_whiteboard_history) = signal(Vec::<DrawAction>::new());
+    let (_last_draw_action, set_last_draw_action) = signal(None::<DrawAction>);
+    let (my_id, set_my_id) = signal(None::<String>);
+    let (local_stream, set_local_stream) = signal(None::<MediaStream>);
+    let (local_screen_stream, set_local_screen_stream) = signal(None::<MediaStream>);
+    let (is_muted, set_is_muted) = signal(false);
+    let (is_camera_off, set_is_camera_off) = signal(false);
+    let (shared_video_url, set_shared_video_url) = signal(None::<String>);
+    let (speaking_peers, set_speaking_peers) = signal(HashSet::<String>::new());
+    let (audio_monitor, set_audio_monitor) = signal(None::<AudioMonitor>);
+    let (show_speaker_stats, set_show_speaker_stats) = signal(false);
+    let (show_virtual_background, set_show_virtual_background) = signal(false);
+    let (show_feedback, set_show_feedback) = signal(false);
+    let (rtt, set_rtt) = signal(0u64);
+    let (audio_level, set_audio_level) = signal(0.0);
+    let (last_ping_time, set_last_ping_time) = signal(0f64);
+    let (selected_camera_id, set_selected_camera_id) = signal(settings.camera_id);
+    let (selected_mic_id, set_selected_mic_id) = signal(settings.mic_id);
     let (video_resolution, set_video_resolution) =
-        create_signal(settings.resolution.unwrap_or("hd".to_string()));
-    let (is_noise_suppression_enabled, set_is_noise_suppression_enabled) = create_signal(false);
-    let (has_unmute_permission, set_has_unmute_permission) = create_signal(false);
-    let (has_camera_permission, set_has_camera_permission) = create_signal(false);
-    let (pending_unmute_requests, set_pending_unmute_requests) = create_signal(HashSet::new());
-    let (pending_camera_requests, set_pending_camera_requests) = create_signal(HashSet::new());
-    let (background_mode, set_background_mode_sig) = create_signal("none".to_string());
-    let (grid_layout, set_grid_layout_sig) = create_signal("grid".to_string());
-    let (room_config, set_room_config) = create_signal(shared::RoomConfig::default());
+        signal(settings.resolution.unwrap_or("hd".to_string()));
+    let (is_noise_suppression_enabled, set_is_noise_suppression_enabled) = signal(false);
+    let (has_unmute_permission, set_has_unmute_permission) = signal(false);
+    let (has_camera_permission, set_has_camera_permission) = signal(false);
+    let (pending_unmute_requests, set_pending_unmute_requests) = signal(HashSet::new());
+    let (pending_camera_requests, set_pending_camera_requests) = signal(HashSet::new());
+    let (background_mode, set_background_mode_sig) = signal("none".to_string());
+    let (grid_layout, set_grid_layout_sig) = signal("grid".to_string());
+    let (room_config, set_room_config) = signal(shared::RoomConfig::default());
     let is_audio_moderated = Signal::derive(move || room_config.get().audio_moderation_enabled);
     let is_video_moderated = Signal::derive(move || room_config.get().video_moderation_enabled);
-    let (branding, set_branding_sig) = create_signal(shared::BrandingConfig::default());
-    let (lobby_announcement, set_lobby_announcement) = create_signal(None::<String>);
-    let (dominant_speaker, set_dominant_speaker) = create_signal(None::<String>);
-    let (_last_face_expression, set_face_expression) = create_signal(None::<(String, String, u64)>);
-    let is_face_landmarks_enabled = create_rw_signal(false);
-    let (is_audio_only, set_is_audio_only) = create_signal(false);
-    let (is_flipped, set_is_flipped) = create_signal(false);
-    let (pinned_participant, set_pinned_participant) = create_signal(None::<String>);
-    let (participant_volumes, set_participant_volumes) =
-        create_signal(HashMap::<String, f64>::new());
+    let (branding, set_branding_sig) = signal(shared::BrandingConfig::default());
+    let (lobby_announcement, set_lobby_announcement) = signal(None::<String>);
+    let (dominant_speaker, set_dominant_speaker) = signal(None::<String>);
+    let (_last_face_expression, set_face_expression) = signal(None::<(String, String, u64)>);
+    let is_face_landmarks_enabled = RwSignal::new(false);
+    let (is_audio_only, set_is_audio_only) = signal(false);
+    let (is_flipped, set_is_flipped) = signal(false);
+    let (pinned_participant, set_pinned_participant) = signal(None::<String>);
+    let (participant_volumes, set_participant_volumes) = signal(HashMap::<String, f64>::new());
 
-    let (remote_streams, set_remote_streams) =
-        create_signal(HashMap::<String, Vec<MediaStream>>::new());
+    let (remote_streams, set_remote_streams) = signal(HashMap::<String, Vec<MediaStream>>::new());
 
     let (power_statuses, set_power_statuses) =
-        create_signal(std::collections::HashMap::<String, shared::PowerStatus>::new());
-    let (is_recording_locally, set_is_recording_locally) = create_signal(false);
-    let (is_talking_while_muted, set_is_talking_while_muted) = create_signal(false);
-    let (show_rejoin, set_show_rejoin) = create_signal(false);
-    let local_recorder: Rc<RefCell<Option<crate::media_recorder::LocalRecorder>>> =
-        Rc::new(RefCell::new(None));
+        signal(std::collections::HashMap::<String, shared::PowerStatus>::new());
+    let (is_recording_locally, set_is_recording_locally) = signal(false);
+    let (is_talking_while_muted, set_is_talking_while_muted) = signal(false);
+    let (show_rejoin, set_show_rejoin) = signal(false);
+    let local_recorder: SendWrapper<Rc<RefCell<Option<crate::media_recorder::LocalRecorder>>>> =
+        SendWrapper::new(Rc::new(RefCell::new(None)));
     // Holds previously-stopped recorders whose async `onstop` callbacks may
     // not have fired yet. They are kept alive here so the wasm-bindgen
     // Closures remain valid until the browser event loop processes the stop
     // event. Entries are cleared each time a new recording starts.
-    let pending_recorders: Rc<RefCell<Vec<crate::media_recorder::LocalRecorder>>> =
-        Rc::new(RefCell::new(Vec::new()));
+    let pending_recorders: SendWrapper<Rc<RefCell<Vec<crate::media_recorder::LocalRecorder>>>> =
+        SendWrapper::new(Rc::new(RefCell::new(Vec::new())));
     // Tracks the stream ID that the active LocalRecorder was created with.
     // Used by a reactive effect to detect when `local_stream` is replaced
     // (e.g. camera toggle, device switch) and automatically restart the
     // recording on the new stream.
-    let recording_stream_id: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(None));
+    let recording_stream_id: SendWrapper<Rc<RefCell<Option<String>>>> =
+        SendWrapper::new(Rc::new(RefCell::new(None)));
 
     // Video Processing for Virtual Background
-    let (raw_local_stream, set_raw_local_stream) = create_signal(None::<MediaStream>);
+    let (raw_local_stream, set_raw_local_stream) = signal(None::<MediaStream>);
 
     // Reactive signals that need to be defined before callbacks
     let host_id = Signal::derive(move || room_config.get().host_id);
@@ -342,7 +343,7 @@ pub fn use_room_state() -> RoomState {
     // device switch, noise-suppression restart).
     let prev_stream_id: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(None));
 
-    create_effect({
+    Effect::new({
         let prev_stream_id = prev_stream_id.clone();
         move |prev_processor: Option<Option<crate::media::VideoProcessor>>| -> Option<crate::media::VideoProcessor> {
             let mode = background_mode.get();
@@ -355,8 +356,8 @@ pub fn use_room_state() -> RoomState {
                     // Stop old canvas stream video tracks to avoid leaking captureStream
                     // resources. Only stop video tracks since audio tracks are shared
                     // references to the raw stream's tracks and must remain active.
-                    if prev_processor.as_ref().is_some_and(|p| p.is_some()) {
-                        if let Some(old_processed) = local_stream.get_untracked() {
+                    if prev_processor.as_ref().is_some_and(|p| p.is_some())
+                        && let Some(old_processed) = local_stream.get_untracked() {
                             let video_tracks = old_processed.get_video_tracks();
                             for i in 0..video_tracks.length() {
                                 if let Ok(track) = video_tracks.get(i).dyn_into::<web_sys::MediaStreamTrack>() {
@@ -364,7 +365,6 @@ pub fn use_room_state() -> RoomState {
                                 }
                             }
                         }
-                    }
                     if let Some(Some(prev)) = prev_processor {
                         drop(prev);
                     }
@@ -379,19 +379,18 @@ pub fn use_room_state() -> RoomState {
                     };
                     *prev_stream_id.borrow_mut() = Some(s.id());
 
-                    if !stream_changed {
-                        if let Some(Some(prev)) = prev_processor {
+                    if !stream_changed
+                        && let Some(Some(prev)) = prev_processor {
                             // Same stream, only mode changed — update in-place instead of
                             // recreating the canvas, video element, interval, and captureStream.
                             prev.set_mode(mode);
                             return Some(prev);
                         }
-                    }
 
                     // Either the stream changed or no processor exists yet — (re)create.
                     // Stop old canvas video tracks before dropping the processor.
-                    if prev_processor.as_ref().is_some_and(|p| p.is_some()) {
-                        if let Some(old_processed) = local_stream.get_untracked() {
+                    if prev_processor.as_ref().is_some_and(|p| p.is_some())
+                        && let Some(old_processed) = local_stream.get_untracked() {
                             let video_tracks = old_processed.get_video_tracks();
                             for i in 0..video_tracks.length() {
                                 if let Ok(track) = video_tracks.get(i).dyn_into::<web_sys::MediaStreamTrack>() {
@@ -399,7 +398,6 @@ pub fn use_room_state() -> RoomState {
                                 }
                             }
                         }
-                    }
                     if let Some(Some(prev)) = prev_processor {
                         drop(prev);
                     }
@@ -429,12 +427,12 @@ pub fn use_room_state() -> RoomState {
 
     let set_grid_layout = Callback::new(move |layout: String| {
         set_grid_layout_sig.set(layout.clone());
-        if is_host.get_untracked() {
-            if let Some(socket) = ws.get() {
-                let msg = ClientMessage::FollowMe(layout);
-                if let Ok(json) = serde_json::to_string(&msg) {
-                    let _ = socket.send_with_str(&json);
-                }
+        if is_host.get_untracked()
+            && let Some(socket) = ws.get()
+        {
+            let msg = ClientMessage::FollowMe(layout);
+            if let Ok(json) = serde_json::to_string(&msg) {
+                let _ = socket.send_with_str(&json);
             }
         }
     });
@@ -451,10 +449,10 @@ pub fn use_room_state() -> RoomState {
     // WebRTC Manager Setup
     let ws_clone_for_webrtc = ws;
     let send_signal_cb = move |msg: ClientMessage| {
-        if let Some(socket) = ws_clone_for_webrtc.get_untracked() {
-            if let Ok(json) = serde_json::to_string(&msg) {
-                let _ = socket.send_with_str(&json);
-            }
+        if let Some(socket) = ws_clone_for_webrtc.get_untracked()
+            && let Ok(json) = serde_json::to_string(&msg)
+        {
+            let _ = socket.send_with_str(&json);
         }
     };
 
@@ -469,7 +467,7 @@ pub fn use_room_state() -> RoomState {
     provide_dropbox_context(Callback::new(send_signal_cb));
 
     // Periodic Analytics: Track performance stats (RTT, Audio Level) every 10 seconds
-    create_effect({
+    Effect::new({
         let analytics = analytics.clone();
         move |_| {
             let analytics_inner = analytics.clone();
@@ -496,11 +494,11 @@ pub fn use_room_state() -> RoomState {
                     let _ = analytics_inner;
                 }
             });
-            on_cleanup(move || drop(handle));
+            on_cleanup_local(move || drop(handle));
         }
     });
 
-    create_effect({
+    Effect::new({
         let face_landmarks = face_landmarks.clone();
         move |_| {
             if is_face_landmarks_enabled.get() {
@@ -563,7 +561,7 @@ pub fn use_room_state() -> RoomState {
     let my_id_for_effect = my_id;
     let webrtc_manager_clone = webrtc_manager.clone();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         // Run when my_id or local_stream changes
         let my_id_val = my_id_for_effect.get();
         // We track local_stream and local_screen_stream to trigger track updates
@@ -589,12 +587,12 @@ pub fn use_room_state() -> RoomState {
     });
 
     // Internal state to trigger media start after joining
-    let (start_media_on_join, set_start_media_on_join) = create_signal(false);
-    let (initial_cam_on, set_initial_cam_on) = create_signal(false);
+    let (start_media_on_join, set_start_media_on_join) = signal(false);
+    let (initial_cam_on, set_initial_cam_on) = signal(false);
 
     // Setup listener for "talk while muted"
     let toast_context = crate::components_ui::toast::use_toast();
-    create_effect(move |_| {
+    Effect::new(move |_| {
         use wasm_bindgen::JsCast;
         if let Some(window) = web_sys::window() {
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
@@ -617,7 +615,7 @@ pub fn use_room_state() -> RoomState {
             );
 
             // Clean up the event listener when the component is unmounted
-            on_cleanup(move || {
+            on_cleanup_local(move || {
                 if let Some(win) = web_sys::window() {
                     let _ = win.remove_event_listener_with_callback(
                         "talk_while_muted",
@@ -628,7 +626,7 @@ pub fn use_room_state() -> RoomState {
         }
     });
 
-    create_effect({
+    Effect::new({
         let toast_ctx_inner = toast_ctx;
         move |_| {
             if let Some(window) = web_sys::window() {
@@ -646,7 +644,7 @@ pub fn use_room_state() -> RoomState {
                     closure.as_ref().unchecked_ref(),
                 );
 
-                on_cleanup(move || {
+                on_cleanup_local(move || {
                     if let Some(win) = web_sys::window() {
                         let _ = win.remove_event_listener_with_callback(
                             "noise_detected",
@@ -772,7 +770,7 @@ pub fn use_room_state() -> RoomState {
     // pauses in conversation. The signal is only cleared when the last
     // dominant speaker leaves the room.
     let speaker_starts: Rc<RefCell<HashMap<String, f64>>> = Rc::new(RefCell::new(HashMap::new()));
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let peers = speaking_peers.get();
         let me = my_id.get();
         // Track `participants` reactively so the effect re-runs when a
@@ -829,7 +827,7 @@ pub fn use_room_state() -> RoomState {
     });
 
     // Reactive Noise Suppression Update
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let enabled = is_noise_suppression_enabled.get();
         let needs_restart = audio_monitor.with_untracked(|monitor| {
             if let Some(m) = monitor {
@@ -848,13 +846,13 @@ pub fn use_room_state() -> RoomState {
                     .is_some_and(|stream| stream.get_video_tracks().length() > 0)
             });
             if local_stream.get_untracked().is_some() {
-                start_media_stream.call(has_video);
+                start_media_stream.run(has_video);
             }
         }
     });
 
     // Initialize WebSocket
-    create_effect({
+    Effect::new({
         let analytics_for_ws = analytics.clone();
         let local_recorder_for_cleanup = local_recorder.clone();
         let pending_recorders_for_cleanup = pending_recorders.clone();
@@ -1057,7 +1055,7 @@ pub fn use_room_state() -> RoomState {
     });
     let webrtc_manager_cleanup = webrtc_manager.clone();
     let _remote_control_cleanup = remote_control.clone();
-    on_cleanup(move || {
+    on_cleanup_local(move || {
         if let Some(socket) = ws.get() {
             let _ = socket.close();
         }
@@ -1138,11 +1136,12 @@ pub fn use_room_state() -> RoomState {
     });
 
     let toggle_etherpad = Callback::new(move |url: Option<String>| {
-        if let Some(url_str) = &url {
-            if !url_str.starts_with("https://") && !url_str.starts_with("http://") {
-                add_toast("Invalid Etherpad URL".to_string(), ToastType::Error);
-                return;
-            }
+        if let Some(url_str) = &url
+            && !url_str.starts_with("https://")
+            && !url_str.starts_with("http://")
+        {
+            add_toast("Invalid Etherpad URL".to_string(), ToastType::Error);
+            return;
         }
 
         if let Some(socket) = ws.get() {
@@ -1707,7 +1706,7 @@ pub fn use_room_state() -> RoomState {
         let local_recorder = local_recorder.clone();
         let pending_recorders = pending_recorders.clone();
         let recording_stream_id = recording_stream_id.clone();
-        create_effect(move |_| {
+        Effect::new(move |_| {
             let current_stream = local_stream.get();
             let is_active = is_recording_locally.get_untracked();
             if !is_active {
@@ -1896,7 +1895,7 @@ pub fn use_room_state() -> RoomState {
             }
         }
 
-        start_media_stream.call(new_state);
+        start_media_stream.run(new_state);
     });
 
     let set_input_devices = Callback::new(
@@ -1925,7 +1924,7 @@ pub fn use_room_state() -> RoomState {
                         m.as_ref().is_some_and(|monitor| !monitor.has_compressor())
                     });
                 if !ns_will_trigger_restart {
-                    start_media_stream.call(has_video);
+                    start_media_stream.run(has_video);
                 }
             }
         },

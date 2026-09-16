@@ -1,5 +1,5 @@
 use crate::i18n::t;
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn AlwaysOnTop(
@@ -31,7 +31,7 @@ pub fn AlwaysOnTop(
             <div class="toolbox-content-items always-on-top-toolbox">
                 <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
                     <button
-                        on:click=move |_| on_toggle_audio.call(())
+                        on:click=move |_| on_toggle_audio.run(())
                         class=move || format!("toolbar-btn {}", if is_audio_muted.get() { "muted" } else { "" })
                         style=move || format!("
                             background: {};
@@ -59,7 +59,7 @@ pub fn AlwaysOnTop(
                 </div>
 
                 <button
-                    on:click=move |_| on_toggle_video.call(())
+                    on:click=move |_| on_toggle_video.run(())
                     class=move || format!("toolbar-btn {}", if is_video_muted.get() { "muted" } else { "" })
                     style=move || format!("
                         background: {};
@@ -79,7 +79,7 @@ pub fn AlwaysOnTop(
                 </button>
 
                 <button
-                    on:click=move |_| on_leave.call(())
+                    on:click=move |_| on_leave.run(())
                     class="toolbar-btn hangup-button"
                     style="
                         background: #dc3545;

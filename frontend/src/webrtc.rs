@@ -1,9 +1,11 @@
-use leptos::*;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
+use send_wrapper::SendWrapper;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
     MediaStream, RtcIceCandidate, RtcIceCandidateInit, RtcPeerConnection,
@@ -11,14 +13,17 @@ use web_sys::{
 };
 
 type PeerId = String;
+type CandidateMap = SendWrapper<Rc<RefCell<HashMap<PeerId, Vec<RtcIceCandidateInit>>>>>;
+type OfferMap = SendWrapper<Rc<RefCell<HashMap<PeerId, bool>>>>;
+type PeerMap = SendWrapper<Rc<RefCell<HashMap<PeerId, RtcPeerConnection>>>>;
 
 #[derive(Clone)]
 pub struct WebRTCManager {
-    peers: Rc<RefCell<HashMap<PeerId, RtcPeerConnection>>>,
-    pending_candidates: Rc<RefCell<HashMap<PeerId, Vec<RtcIceCandidateInit>>>>,
-    making_offer: Rc<RefCell<HashMap<PeerId, bool>>>,
-    send_signal: Rc<dyn Fn(shared::ClientMessage)>,
-    on_track: Rc<dyn Fn(PeerId, MediaStream)>,
+    peers: PeerMap,
+    pending_candidates: CandidateMap,
+    making_offer: OfferMap,
+    send_signal: SendWrapper<Rc<dyn Fn(shared::ClientMessage)>>,
+    on_track: SendWrapper<Rc<dyn Fn(PeerId, MediaStream)>>,
     local_stream: Signal<Option<MediaStream>>,
     local_screen_stream: Signal<Option<MediaStream>>,
     my_id: Signal<Option<String>>,
@@ -33,11 +38,11 @@ impl WebRTCManager {
         my_id: Signal<Option<String>>,
     ) -> Self {
         Self {
-            peers: Rc::new(RefCell::new(HashMap::new())),
-            pending_candidates: Rc::new(RefCell::new(HashMap::new())),
-            making_offer: Rc::new(RefCell::new(HashMap::new())),
-            send_signal: Rc::new(send_signal),
-            on_track: Rc::new(on_track),
+            peers: SendWrapper::new(Rc::new(RefCell::new(HashMap::new()))),
+            pending_candidates: SendWrapper::new(Rc::new(RefCell::new(HashMap::new()))),
+            making_offer: SendWrapper::new(Rc::new(RefCell::new(HashMap::new()))),
+            send_signal: SendWrapper::new(Rc::new(send_signal)),
+            on_track: SendWrapper::new(Rc::new(on_track)),
             local_stream,
             local_screen_stream,
             my_id,
@@ -313,15 +318,15 @@ impl WebRTCManager {
                 if let Ok(answer) = JsFuture::from(create_answer_promise).await {
                     let answer_sdp = answer.unchecked_into::<RtcSessionDescriptionInit>();
                     let set_local_promise = pc.set_local_description(&answer_sdp);
-                    if JsFuture::from(set_local_promise).await.is_ok() {
-                        if let Some(desc) = pc.local_description() {
-                            let sdp_str = desc.sdp();
-                            let msg = shared::ClientMessage::Answer {
-                                target_id: source_id,
-                                sdp: sdp_str,
-                            };
-                            (this.send_signal)(msg);
-                        }
+                    if JsFuture::from(set_local_promise).await.is_ok()
+                        && let Some(desc) = pc.local_description()
+                    {
+                        let sdp_str = desc.sdp();
+                        let msg = shared::ClientMessage::Answer {
+                            target_id: source_id,
+                            sdp: sdp_str,
+                        };
+                        (this.send_signal)(msg);
                     }
                 }
             }
@@ -449,10 +454,10 @@ impl WebRTCManager {
                 let senders = pc.get_senders();
                 for sender in senders.iter() {
                     let sender = sender.unchecked_ref::<web_sys::RtcRtpSender>();
-                    if let Some(track) = sender.track() {
-                        if !valid_track_ids.contains(&track.id()) {
-                            pc.remove_track(sender);
-                        }
+                    if let Some(track) = sender.track()
+                        && !valid_track_ids.contains(&track.id())
+                    {
+                        pc.remove_track(sender);
                     }
                 }
 
@@ -468,11 +473,11 @@ impl WebRTCManager {
                         let mut already_sending = false;
                         for sender in current_senders.iter() {
                             let sender = sender.unchecked_ref::<web_sys::RtcRtpSender>();
-                            if let Some(t) = sender.track() {
-                                if t.id() == track.id() {
-                                    already_sending = true;
-                                    break;
-                                }
+                            if let Some(t) = sender.track()
+                                && t.id() == track.id()
+                            {
+                                already_sending = true;
+                                break;
                             }
                         }
                         if !already_sending {
@@ -492,11 +497,11 @@ impl WebRTCManager {
                         let mut already_sending = false;
                         for sender in current_senders.iter() {
                             let sender = sender.unchecked_ref::<web_sys::RtcRtpSender>();
-                            if let Some(t) = sender.track() {
-                                if t.id() == track.id() {
-                                    already_sending = true;
-                                    break;
-                                }
+                            if let Some(t) = sender.track()
+                                && t.id() == track.id()
+                            {
+                                already_sending = true;
+                                break;
                             }
                         }
                         if !already_sending {
@@ -521,10 +526,11 @@ mod tests {
 
     #[test]
     fn test_manager_instantiation() {
-        let _runtime = create_runtime();
-        let (local_stream, _) = create_signal(None);
-        let (local_screen_stream, _) = create_signal(None);
-        let (my_id, _) = create_signal(Some("me".to_string()));
+        let owner = Owner::new();
+        owner.set();
+        let (local_stream, _) = signal(None);
+        let (local_screen_stream, _) = signal(None);
+        let (my_id, _) = signal(Some("me".to_string()));
         let _manager = WebRTCManager::new(
             |_| {},
             |_, _| {},

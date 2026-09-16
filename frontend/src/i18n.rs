@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub enum Locale {
@@ -14,7 +14,7 @@ pub struct I18nContext {
 }
 
 pub fn provide_i18n_context() {
-    let locale = create_rw_signal(Locale::default());
+    let locale = RwSignal::new(Locale::default());
     provide_context(I18nContext { locale });
 }
 

@@ -1,6 +1,8 @@
-use leptos::*;
-use wasm_bindgen::prelude::*;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
+
+use crate::cleanup::on_cleanup_local;
 
 // Logic for testing key mapping
 pub fn get_action_for_key(key: &str) -> Option<&'static str> {
@@ -26,40 +28,40 @@ pub fn KeyboardShortcuts(
     #[prop(optional)] on_toggle_participants: Option<Callback<()>>,
     #[prop(optional)] on_toggle_local_recording: Option<Callback<()>>,
 ) -> impl IntoView {
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let handle_keydown = Closure::wrap(Box::new(move |ev: web_sys::KeyboardEvent| {
             // Ignore if user is typing in an input, textarea, or select
-            if let Some(target) = ev.target() {
-                if let Some(el) = target.dyn_ref::<web_sys::HtmlElement>() {
-                    let tag = el.tag_name().to_lowercase();
-                    if tag == "input" || tag == "textarea" || tag == "select" {
-                        return;
-                    }
-                    if el.is_content_editable() {
-                        return;
-                    }
+            if let Some(target) = ev.target()
+                && let Some(el) = target.dyn_ref::<web_sys::HtmlElement>()
+            {
+                let tag = el.tag_name().to_lowercase();
+                if tag == "input" || tag == "textarea" || tag == "select" {
+                    return;
+                }
+                if el.is_content_editable() {
+                    return;
                 }
             }
             let key = ev.key();
 
             match get_action_for_key(&key) {
-                Some("toggle_mic") => on_toggle_mic.call(()),
-                Some("toggle_camera") => on_toggle_camera.call(()),
-                Some("raise_hand") => on_raise_hand.call(()),
-                Some("screen_share") => on_screen_share.call(()),
+                Some("toggle_mic") => on_toggle_mic.run(()),
+                Some("toggle_camera") => on_toggle_camera.run(()),
+                Some("raise_hand") => on_raise_hand.run(()),
+                Some("screen_share") => on_screen_share.run(()),
                 Some("toggle_chat") => {
                     if let Some(cb) = on_toggle_chat {
-                        cb.call(());
+                        cb.run(());
                     }
                 }
                 Some("toggle_participants") => {
                     if let Some(cb) = on_toggle_participants {
-                        cb.call(());
+                        cb.run(());
                     }
                 }
                 Some("toggle_local_recording") => {
                     if let Some(cb) = on_toggle_local_recording {
-                        cb.call(());
+                        cb.run(());
                     }
                 }
                 _ => {}
@@ -72,7 +74,7 @@ pub fn KeyboardShortcuts(
             .add_event_listener_with_callback("keydown", handle_keydown.as_ref().unchecked_ref())
             .unwrap();
 
-        on_cleanup(move || {
+        on_cleanup_local(move || {
             let window = web_sys::window().unwrap();
             let document = window.document().unwrap();
             let _ = document.remove_event_listener_with_callback(
@@ -87,9 +89,7 @@ pub fn KeyboardShortcuts(
         // which keeps it alive until the component is unmounted.
     });
 
-    view! {
-        // Invisible component
-    }
+    view! { <span class="keyboard-shortcuts-mount" style="display: none;" /> }
 }
 
 #[component]
@@ -100,7 +100,7 @@ pub fn ShortcutsDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl I
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">"⌨️ Keyboard Shortcuts"</h3>
-                        <button id="close-shortcuts-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"✕"</button>
+                        <button id="close-shortcuts-btn" class="modal-close-btn" on:click=move |_| on_close.run(())>"✕"</button>
                     </div>
                     <ul class="modal-body custom-scrollbar" style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
                         <li style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">

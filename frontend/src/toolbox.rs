@@ -1,4 +1,24 @@
-use leptos::*;
+use leptos::prelude::*;
+
+fn presence_label(status: &shared::PresenceStatus) -> &'static str {
+    match status {
+        shared::PresenceStatus::Connected => "Connected",
+        shared::PresenceStatus::Busy => "Busy",
+        shared::PresenceStatus::Calling => "Calling",
+        shared::PresenceStatus::Ringing => "Ringing",
+        _ => "Connected",
+    }
+}
+
+fn presence_from_label(label: &str) -> shared::PresenceStatus {
+    match label {
+        "Connected" => shared::PresenceStatus::Connected,
+        "Busy" => shared::PresenceStatus::Busy,
+        "Calling" => shared::PresenceStatus::Calling,
+        "Ringing" => shared::PresenceStatus::Ringing,
+        _ => shared::PresenceStatus::Connected,
+    }
+}
 
 #[component]
 pub fn Toolbox(
@@ -63,7 +83,7 @@ pub fn Toolbox(
             // Group: Leave
             <div class="toolbox-group">
                 <button
-                    on:click=move |_| { if let Some(cb) = on_leave { cb.call(()); } }
+                    on:click=move |_| { if let Some(cb) = on_leave { cb.run(()); } }
                     class="btn btn-danger"
                     title="Leave Meeting"
                 >
@@ -71,7 +91,7 @@ pub fn Toolbox(
                 </button>
                 <Show when=move || is_host.get()>
                     <button
-                        on:click=move |_| { if let Some(cb) = on_end_meeting { cb.call(()); } }
+                        on:click=move |_| { if let Some(cb) = on_end_meeting { cb.run(()); } }
                         class="btn btn-outline"
                         style="color: var(--danger-color); border-color: var(--danger-color);"
                         title="End Meeting for Everyone"
@@ -80,7 +100,7 @@ pub fn Toolbox(
                     </button>
                 </Show>
                 <button
-                    on:click=move |_| on_invite.call(())
+                    on:click=move |_| on_invite.run(())
                     class="btn btn-outline"
                     title="Invite Others"
                 >
@@ -93,7 +113,7 @@ pub fn Toolbox(
                 <Show when=move || !is_visitor.get()>
                     <button
                         id="toggle-camera-btn"
-                        on:click=move |_| on_toggle_camera.call(())
+                        on:click=move |_| on_toggle_camera.run(())
                         class="btn btn-outline"
                         title="Toggle Camera"
                     >
@@ -101,7 +121,7 @@ pub fn Toolbox(
                     </button>
                     <button
                         id="toggle-mic-btn"
-                        on:click=move |_| on_toggle_mic.call(())
+                        on:click=move |_| on_toggle_mic.run(())
                         class=move || format!("btn {} {}",
                             if is_muted.get() { "btn-danger" } else { "btn-success" },
                             if is_talking_while_muted.map(|s| s.get()).unwrap_or(false) { "pulse-animation" } else { "" }
@@ -115,7 +135,7 @@ pub fn Toolbox(
                     <Show when=move || is_audio_moderated.map(|s| s.get()).unwrap_or(false) && !has_unmute_permission.map(|s| s.get()).unwrap_or(false)>
                         <button
                             id="request-unmute-btn"
-                            on:click=move |_| { if let Some(cb) = on_request_unmute_permission { cb.call(()); } }
+                            on:click=move |_| { if let Some(cb) = on_request_unmute_permission { cb.run(()); } }
                             class="btn btn-outline"
                             title="Request Unmute Permission"
                         >
@@ -125,7 +145,7 @@ pub fn Toolbox(
                     <Show when=move || is_video_moderated.map(|s| s.get()).unwrap_or(false) && !has_camera_permission.map(|s| s.get()).unwrap_or(false)>
                         <button
                             id="request-camera-btn"
-                            on:click=move |_| { if let Some(cb) = on_request_camera_permission { cb.call(()); } }
+                            on:click=move |_| { if let Some(cb) = on_request_camera_permission { cb.run(()); } }
                             class="btn btn-outline"
                             title="Request Camera Permission"
                         >
@@ -135,7 +155,7 @@ pub fn Toolbox(
                 </Show>
                 <button
                     id="toggle-subtitles-btn"
-                    on:click=move |_| on_toggle_subtitles.call(())
+                    on:click=move |_| on_toggle_subtitles.run(())
                     class=move || format!("btn {}", if is_subtitles_enabled.get() { "btn-primary" } else { "btn-outline" })
                     title="Toggle Subtitles"
                 >
@@ -143,7 +163,7 @@ pub fn Toolbox(
                 </button>
                 <Show when=move || is_host.get()>
                     <button
-                        on:click=move |_| on_toggle_recording.call(())
+                        on:click=move |_| on_toggle_recording.run(())
                         class=move || format!("btn {}", if is_recording.get() { "btn-danger" } else { "btn-outline" })
                         title="Toggle Server Recording"
                     >
@@ -156,14 +176,14 @@ pub fn Toolbox(
             <div class="toolbox-group">
                 <Show when=move || !is_visitor.get()>
                     <button
-                        on:click=move |_| on_screen_share.call(())
+                        on:click=move |_| on_screen_share.run(())
                         class="btn btn-outline"
                         title="Share Screen"
                     >
                         "Share Screen"
                     </button>
                     <button
-                        on:click=move |_| on_raise_hand.call(())
+                        on:click=move |_| on_raise_hand.run(())
                         class="btn btn-warning"
                         title="Raise Hand"
                     >
@@ -172,7 +192,7 @@ pub fn Toolbox(
                 </Show>
                 <button
                     id="toggle-whiteboard-btn"
-                    on:click=move |_| on_whiteboard.call(())
+                    on:click=move |_| on_whiteboard.run(())
                     class="btn btn-outline"
                     title="Whiteboard"
                 >
@@ -180,7 +200,7 @@ pub fn Toolbox(
                 </button>
                 <Show when=move || on_virtual_background.is_some() && !is_visitor.get()>
                     <button
-                        on:click=move |_| on_virtual_background.unwrap().call(())
+                        on:click=move |_| on_virtual_background.unwrap().run(())
                         class="btn btn-outline"
                         title="Virtual Background"
                     >
@@ -192,9 +212,9 @@ pub fn Toolbox(
                         id="toggle-shared-video-btn"
                         on:click=move |_| {
                             if is_sharing_video.get() {
-                                on_stop_share_video.call(());
+                                on_stop_share_video.run(());
                             } else {
-                                on_share_video.call(());
+                                on_share_video.run(());
                             }
                         }
                         class=move || format!("btn {}", if is_sharing_video.get() { "btn-danger" } else { "btn-outline" })
@@ -204,8 +224,8 @@ pub fn Toolbox(
                     </button>
                 </Show>
                 <div class="reactions" style="display: flex; gap: 4px; align-items: center; margin-left: 5px;">
-                    <button on:click=move |_| on_reaction.call("👍".to_string()) style="cursor: pointer; border: none; background: none; font-size: 1.2rem;">"👍"</button>
-                    <button on:click=move |_| on_reaction.call("👏".to_string()) style="cursor: pointer; border: none; background: none; font-size: 1.2rem;">"👏"</button>
+                    <button on:click=move |_| on_reaction.run("👍".to_string()) style="cursor: pointer; border: none; background: none; font-size: 1.2rem;">"👍"</button>
+                    <button on:click=move |_| on_reaction.run("👏".to_string()) style="cursor: pointer; border: none; background: none; font-size: 1.2rem;">"👏"</button>
                 </div>
             </div>
 
@@ -213,7 +233,7 @@ pub fn Toolbox(
             <div class="toolbox-group">
                 <button
                     id="toggle-chat-btn"
-                    on:click=move |_| on_toggle_chat.call(())
+                    on:click=move |_| on_toggle_chat.run(())
                     class="btn btn-outline"
                     title="Toggle Chat"
                 >
@@ -221,7 +241,7 @@ pub fn Toolbox(
                 </button>
                 <button
                     id="toggle-participants-btn"
-                    on:click=move |_| on_toggle_participants.call(())
+                    on:click=move |_| on_toggle_participants.run(())
                     class="btn btn-outline"
                     title="Toggle Participants"
                 >
@@ -229,7 +249,7 @@ pub fn Toolbox(
                 </button>
                 <button
                     id="toggle-polls-btn"
-                    on:click=move |_| on_polls.call(())
+                    on:click=move |_| on_polls.run(())
                     class="btn btn-outline"
                     title="Polls"
                 >
@@ -237,7 +257,7 @@ pub fn Toolbox(
                 </button>
                 <button
                     id="toggle-files-btn"
-                    on:click=move |_| on_files.call(())
+                    on:click=move |_| on_files.run(())
                     class="btn btn-outline"
                     title="Files"
                 >
@@ -245,7 +265,7 @@ pub fn Toolbox(
                 </button>
                 <button
                     id="toggle-etherpad-btn"
-                    on:click=move |_| on_toggle_etherpad.call(())
+                    on:click=move |_| on_toggle_etherpad.run(())
                     class=move || format!("btn {}", if is_etherpad_open.get() { "btn-primary" } else { "btn-outline" })
                     title="Shared Document (Etherpad)"
                 >
@@ -256,21 +276,21 @@ pub fn Toolbox(
             // Group: More
             <div class="toolbox-group" style="border-right: none;">
                 <button
-                    on:click=move |_| on_auth_dialog.call(())
+                    on:click=move |_| on_auth_dialog.run(())
                     class="btn btn-outline"
                     title="Login"
                 >
                     "Login"
                 </button>
                 <button
-                    on:click=move |_| on_speaker_stats.call(())
+                    on:click=move |_| on_speaker_stats.run(())
                     class="btn btn-outline"
                     title="Speaker Stats"
                 >
                     "Stats"
                 </button>
                 <button
-                    on:click=move |_| on_feedback.call(())
+                    on:click=move |_| on_feedback.run(())
                     class="btn btn-outline"
                     title="Feedback"
                 >
@@ -278,7 +298,7 @@ pub fn Toolbox(
                 </button>
                 <Show when=move || on_calendar.is_some()>
                     <button
-                        on:click=move |_| on_calendar.unwrap().call(())
+                        on:click=move |_| on_calendar.unwrap().run(())
                         class="btn btn-outline"
                         title="Calendar"
                     >
@@ -287,7 +307,7 @@ pub fn Toolbox(
                 </Show>
                 <Show when=move || on_embed.is_some()>
                     <button
-                        on:click=move |_| on_embed.unwrap().call(())
+                        on:click=move |_| on_embed.unwrap().run(())
                         class="btn btn-outline"
                         title="Embed Meeting"
                     >
@@ -297,7 +317,7 @@ pub fn Toolbox(
                 <Show when=move || on_toggle_local_recording.is_some()>
                     <button
                         id="toggle-local-record-btn"
-                        on:click=move |_| on_toggle_local_recording.unwrap().call(())
+                        on:click=move |_| on_toggle_local_recording.unwrap().run(())
                         class=move || format!("btn {}", if is_recording_locally.map(|s| s.get()).unwrap_or(false) { "btn-danger" } else { "btn-outline" })
                         title="Local Record"
                     >
@@ -306,7 +326,7 @@ pub fn Toolbox(
                 </Show>
                 <Show when=move || on_dial_in.is_some()>
                     <button
-                        on:click=move |_| { if let Some(cb) = on_dial_in { cb.call(()); } }
+                        on:click=move |_| { if let Some(cb) = on_dial_in { cb.run(()); } }
                         class="btn btn-outline"
                         title="Dial-in Info"
                     >
@@ -316,7 +336,7 @@ pub fn Toolbox(
                 <Show when=move || on_salesforce.is_some() && is_host.get()>
                     <button
                         id="salesforce-btn"
-                        on:click=move |_| { if let Some(cb) = on_salesforce { cb.call(()); } }
+                        on:click=move |_| { if let Some(cb) = on_salesforce { cb.run(()); } }
                         class="btn btn-outline"
                         title="Salesforce Integration"
                     >
@@ -324,7 +344,7 @@ pub fn Toolbox(
                     </button>
                 </Show>
                 <button
-                    on:click=move |_| on_shortcuts.call(())
+                    on:click=move |_| on_shortcuts.run(())
                     class="btn btn-outline"
                     title="Keyboard Shortcuts"
                 >
@@ -332,7 +352,7 @@ pub fn Toolbox(
                 </button>
                 <button
                     id="settings-btn"
-                    on:click=move |_| on_settings.call(())
+                    on:click=move |_| on_settings.run(())
                     class="btn btn-outline"
                     title="Settings"
                 >
@@ -341,23 +361,10 @@ pub fn Toolbox(
                 <div class="presence-selector" style="display: flex; gap: 5px; align-items: center;">
                     <select
                         id="presence-select"
-                        prop:value=move || match current_presence.get() {
-                            shared::PresenceStatus::Connected => "Connected",
-                            shared::PresenceStatus::Busy => "Busy",
-                            shared::PresenceStatus::Calling => "Calling",
-                            shared::PresenceStatus::Ringing => "Ringing",
-                            _ => "Connected",
-                        }
+                        prop:value=move || presence_label(&current_presence.get())
                         on:change=move |ev| {
                             let value = event_target_value(&ev);
-                            let status = match value.as_str() {
-                                "Connected" => shared::PresenceStatus::Connected,
-                                "Busy" => shared::PresenceStatus::Busy,
-                                "Calling" => shared::PresenceStatus::Calling,
-                                "Ringing" => shared::PresenceStatus::Ringing,
-                                _ => shared::PresenceStatus::Connected,
-                            };
-                            on_set_presence.call(status);
+                            on_set_presence.run(presence_from_label(&value));
                         }
                         style="padding: 4px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: white; font-size: 0.8rem;"
                     >
@@ -373,10 +380,21 @@ pub fn Toolbox(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn test_toolbox_compiles() {
-        // In a real Leptos project we'd use leptos_dom to test rendering
-        // but here we just verify logic or that it compiles.
-        assert!(true);
+    fn test_presence_label_roundtrip() {
+        for status in [
+            shared::PresenceStatus::Connected,
+            shared::PresenceStatus::Busy,
+            shared::PresenceStatus::Calling,
+            shared::PresenceStatus::Ringing,
+        ] {
+            assert_eq!(presence_from_label(presence_label(&status)), status);
+        }
+        assert_eq!(
+            presence_from_label("unknown"),
+            shared::PresenceStatus::Connected
+        );
     }
 }

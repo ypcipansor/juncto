@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 /// Blocking overlay shown when the WebSocket drops mid-meeting.
 /// Calls a rejoin action supplied by the caller (typically a page reload).
@@ -10,7 +10,7 @@ pub fn RejoinOverlay(show: ReadSignal<bool>, on_rejoin: Callback<()>) -> impl In
                 <div class="rejoin-dialog">
                     <h2>"You were disconnected"</h2>
                     <p>"Your session to the server was interrupted. Rejoin to reconnect."</p>
-                    <button class="btn btn-primary" on:click=move |_| on_rejoin.call(())>"Rejoin now"</button>
+                    <button class="btn btn-primary" on:click=move |_| on_rejoin.run(())>"Rejoin now"</button>
                 </div>
             </div>
         </Show>

@@ -1,7 +1,8 @@
-use crate::components_ui::toast::{use_toast, ToastType};
+use crate::components_ui::toast::{ToastType, use_toast};
 use crate::i18n::t;
 use crate::media::{enumerate_devices, get_user_media};
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{MediaDeviceInfo, MediaDeviceKind};
 
@@ -44,23 +45,23 @@ pub fn SettingsDialog(
     #[prop(optional)] current_branding: Option<Signal<shared::BrandingConfig>>,
 ) -> impl IntoView {
     let toast_ctx = use_toast();
-    let (active_tab, set_active_tab) = create_signal("profile");
+    let (active_tab, set_active_tab) = signal("profile");
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if active_tab.get() == "moderator" && !is_host.map(|h| h.get()).unwrap_or(false) {
             set_active_tab.set("profile");
         }
     });
 
-    let (display_name, set_display_name) = create_signal("".to_string());
-    let (avatar_url, set_avatar_url) = create_signal("".to_string());
-    let (subject, set_subject) = create_signal("".to_string());
-    let (primary_color, set_primary_color) = create_signal("#007bff".to_string());
-    let (bg_color, set_bg_color) = create_signal("#ffffff".to_string());
-    let (logo_url, set_logo_url) = create_signal("".to_string());
+    let (display_name, set_display_name) = signal("".to_string());
+    let (avatar_url, set_avatar_url) = signal("".to_string());
+    let (subject, set_subject) = signal("".to_string());
+    let (primary_color, set_primary_color) = signal("#007bff".to_string());
+    let (bg_color, set_bg_color) = signal("#ffffff".to_string());
+    let (logo_url, set_logo_url) = signal("".to_string());
 
     // Sync local state with global props when dialog opens
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if show.get() {
             if let Some(sig) = current_name {
                 set_display_name.set(sig.get_untracked());
@@ -88,24 +89,24 @@ pub fn SettingsDialog(
         .unwrap_or("hd".to_string());
 
     // Devices State
-    let (video_devices, set_video_devices) = create_signal(Vec::<MediaDeviceInfo>::new());
-    let (audio_devices, set_audio_devices) = create_signal(Vec::<MediaDeviceInfo>::new());
-    let (selected_video, set_selected_video) = create_signal(init_video);
-    let (selected_audio, set_selected_audio) = create_signal(init_audio);
-    let (video_quality, set_video_quality) = create_signal(init_res);
-    let (lock_password, set_lock_password) = create_signal(String::new());
-    let (noise_suppression, set_noise_suppression) = create_signal(
+    let (video_devices, set_video_devices) = signal(Vec::<MediaDeviceInfo>::new());
+    let (audio_devices, set_audio_devices) = signal(Vec::<MediaDeviceInfo>::new());
+    let (selected_video, set_selected_video) = signal(init_video);
+    let (selected_audio, set_selected_audio) = signal(init_audio);
+    let (video_quality, set_video_quality) = signal(init_res);
+    let (lock_password, set_lock_password) = signal(String::new());
+    let (noise_suppression, set_noise_suppression) = signal(
         current_noise_suppression
             .map(|s| s.get_untracked())
             .unwrap_or(false),
     );
-    let (error_msg, set_error_msg) = create_signal(None::<String>);
-    let (preview_stream, set_preview_stream) = create_signal(None::<web_sys::MediaStream>);
+    let (error_msg, set_error_msg) = signal(None::<String>);
+    let (preview_stream, set_preview_stream) = signal(None::<web_sys::MediaStream>);
 
-    let video_ref = create_node_ref::<html::Video>();
+    let video_ref = NodeRef::<html::Video>::new();
 
     // Sync local state with global props when dialog opens
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if show.get() {
             if let Some(sig) = current_video_id {
                 set_selected_video.set(sig.get_untracked());
@@ -134,7 +135,7 @@ pub fn SettingsDialog(
         }
     };
 
-    let fetch_devices = create_action(move |_: &()| async move {
+    let fetch_devices = Action::new_local(move |_: &()| async move {
         match enumerate_devices().await {
             Ok(devices) => {
                 let mut vid = Vec::new();
@@ -155,7 +156,7 @@ pub fn SettingsDialog(
         }
     });
 
-    let start_preview = create_action(move |_: &()| async move {
+    let start_preview = Action::new_local(move |_: &()| async move {
         // Stop existing before starting new
         stop_preview();
 
@@ -189,7 +190,7 @@ pub fn SettingsDialog(
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if active_tab.get() == "devices" {
             fetch_devices.dispatch(());
             start_preview.dispatch(());
@@ -198,7 +199,7 @@ pub fn SettingsDialog(
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if !show.get() {
             stop_preview();
         }
@@ -214,7 +215,7 @@ pub fn SettingsDialog(
                 <div class="modal-content" style="width: 500px;">
                     <div class="modal-header">
                         <h3>{move || t("settings")}</h3>
-                        <button id="close-settings-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button id="close-settings-btn" class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
 
                     <div class="tabs">
@@ -268,7 +269,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_participant_e2ee_enabled.map(|s| s.get()).unwrap_or(false)
                                         on:change=move |ev| {
                                             if let Some(cb) = on_toggle_participant_e2ee {
-                                                cb.call(event_target_checked(&ev));
+                                                cb.run(event_target_checked(&ev));
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -311,7 +312,7 @@ pub fn SettingsDialog(
                                         .map(|s| s.get_untracked())
                                         .unwrap_or_default();
                                     if new_name != prev_name {
-                                        on_save_profile.call(new_name);
+                                        on_save_profile.run(new_name);
                                     }
                                     if let Some(cb) = on_save_avatar {
                                         let av = avatar_url.get();
@@ -320,10 +321,10 @@ pub fn SettingsDialog(
                                             .map(|s| s.get_untracked())
                                             .unwrap_or(None);
                                         if new_val != prev_val {
-                                            cb.call(new_val);
+                                            cb.run(new_val);
                                         }
                                     }
-                                    on_close.call(());
+                                    on_close.run(());
                                 }
                                 class="btn btn-primary"
                             >
@@ -441,9 +442,9 @@ pub fn SettingsDialog(
                                 <button
                                     on:click=move |_| {
                                         if let Some(cb) = on_save_devices {
-                                            cb.call((selected_video.get(), selected_audio.get(), video_quality.get(), noise_suppression.get()));
+                                            cb.run((selected_video.get(), selected_audio.get(), video_quality.get(), noise_suppression.get()));
                                         }
-                                        on_close.call(());
+                                        on_close.run(());
                                     }
                                     class="btn btn-success"
                                 >
@@ -475,7 +476,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_audio_only.map(|s| s.get()).unwrap_or(false)
                                         on:change=move |ev| {
                                             if let Some(cb) = on_toggle_audio_only {
-                                                cb.call(event_target_checked(&ev));
+                                                cb.run(event_target_checked(&ev));
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -491,7 +492,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_flipped.map(|s| s.get()).unwrap_or(false)
                                         on:change=move |ev| {
                                             if let Some(cb) = on_toggle_flip {
-                                                cb.call(event_target_checked(&ev));
+                                                cb.run(event_target_checked(&ev));
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -504,7 +505,7 @@ pub fn SettingsDialog(
                             <div class="integrations-list" style="display: flex; flex-direction: column; gap: 10px;">
                                 {let services = ["Dropbox", "Salesforce", "Google Calendar"];
                                 services.into_iter().map(|s| {
-                                    let (connected, set_connected) = create_signal(false);
+                                    let (connected, set_connected) = signal(false);
                                     let s_clone = s.to_string();
                                     view! {
                                         <div class="integration-item">
@@ -569,7 +570,7 @@ pub fn SettingsDialog(
                                 on:click=move |_| {
                                     if let Some(cb) = on_set_branding {
                                         let logo = logo_url.get();
-                                        cb.call(shared::BrandingConfig {
+                                        cb.run(shared::BrandingConfig {
                                             primary_color: Some(primary_color.get()),
                                             background_color: Some(bg_color.get()),
                                             logo_url: if logo.is_empty() { None } else { Some(logo) },
@@ -597,7 +598,7 @@ pub fn SettingsDialog(
                                         id="update-subject-btn"
                                         on:click=move |_| {
                                             if let Some(cb) = on_set_subject {
-                                                cb.call(subject.get());
+                                                cb.run(subject.get());
                                             }
                                         }
                                         class="btn btn-success"
@@ -615,7 +616,7 @@ pub fn SettingsDialog(
                                         on:change=move |_| {
                                             if let Some(cb) = on_toggle_lock {
                                                 let pw = lock_password.get_untracked();
-                                                cb.call(if pw.trim().is_empty() { None } else { Some(pw) });
+                                                cb.run(if pw.trim().is_empty() { None } else { Some(pw) });
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -642,7 +643,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_lobby_enabled.map(|l| l.get()).unwrap_or(false)
                                         on:change=move |_| {
                                             if let Some(cb) = on_toggle_lobby {
-                                                cb.call(());
+                                                cb.run(());
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -658,7 +659,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_e2ee_enabled.map(|l| l.get()).unwrap_or(false)
                                         on:change=move |_| {
                                             if let Some(cb) = on_toggle_e2ee {
-                                                cb.call(());
+                                                cb.run(());
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -675,7 +676,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_audio_moderation_enabled.map(|s| s.get()).unwrap_or(false)
                                         on:change=move |_| {
                                             if let Some(cb) = on_toggle_audio_moderation {
-                                                cb.call(());
+                                                cb.run(());
                                             }
                                         }
                                         style="margin-right: 10px;"
@@ -691,7 +692,7 @@ pub fn SettingsDialog(
                                         prop:checked=move || is_video_moderation_enabled.map(|s| s.get()).unwrap_or(false)
                                         on:change=move |_| {
                                             if let Some(cb) = on_toggle_video_moderation {
-                                                cb.call(());
+                                                cb.run(());
                                             }
                                         }
                                         style="margin-right: 10px;"

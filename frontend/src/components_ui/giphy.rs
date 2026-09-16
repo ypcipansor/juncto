@@ -1,20 +1,20 @@
 use crate::giphy::{GiphyData, GiphyService};
 use gloo_timers::callback::Timeout;
-use leptos::*;
+use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 #[component]
 pub fn GiphySearch(on_select: Callback<String>, // returns the URL
 ) -> impl IntoView {
-    let (query, set_query) = create_signal("".to_string());
-    let (debounced_query, set_debounced_query) = create_signal("".to_string());
-    let (gifs, set_gifs) = create_signal(Vec::<GiphyData>::new());
-    let (is_loading, set_is_loading) = create_signal(false);
+    let (query, set_query) = signal("".to_string());
+    let (debounced_query, set_debounced_query) = signal("".to_string());
+    let (gifs, set_gifs) = signal(Vec::<GiphyData>::new());
+    let (is_loading, set_is_loading) = signal(false);
 
     // Debounce: only update debounced_query 300ms after the last keystroke
     let debounce_handle: Rc<RefCell<Option<Timeout>>> = Rc::new(RefCell::new(None));
-    create_effect({
+    Effect::new({
         let debounce_handle = debounce_handle.clone();
         move |_| {
             let q = query.get();
@@ -27,7 +27,7 @@ pub fn GiphySearch(on_select: Callback<String>, // returns the URL
         }
     });
 
-    let search_action = create_action(move |q: &String| {
+    let search_action = Action::new_local(move |q: &String| {
         let q = q.clone();
         let service = GiphyService::new(crate::giphy::GIPHY_API_KEY.to_string());
         async move { service.search(&q).await }
@@ -37,7 +37,7 @@ pub fn GiphySearch(on_select: Callback<String>, // returns the URL
     // request the instant the GIF panel opens.  Only dispatch after the user has
     // actually typed something (or explicitly cleared the field).
     let has_interacted = Rc::new(RefCell::new(false));
-    create_effect({
+    Effect::new({
         let has_interacted = has_interacted.clone();
         move |_| {
             let q = debounced_query.get();
@@ -47,7 +47,7 @@ pub fn GiphySearch(on_select: Callback<String>, // returns the URL
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(res) = search_action.value().get() {
             match res {
                 Ok(data) => set_gifs.set(data),
@@ -109,7 +109,7 @@ pub fn GiphySearch(on_select: Callback<String>, // returns the URL
                             <img
                                 src=url
                                 alt=title
-                                on:click=move |_| on_select.call(url_clone.clone())
+                                on:click=move |_| on_select.run(url_clone.clone())
                                 style="width: 100%; cursor: pointer; border-radius: 4px;"
                             />
                         }

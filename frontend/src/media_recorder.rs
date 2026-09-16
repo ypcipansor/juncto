@@ -1,15 +1,16 @@
-use leptos::{Callable, Callback};
+use leptos::prelude::{Callable, Callback};
+use send_wrapper::SendWrapper;
 use std::cell::RefCell;
 use std::rc::Rc;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{BlobEvent, MediaRecorder, MediaRecorderOptions, MediaStream};
 
 pub struct LocalRecorder {
-    recorder: MediaRecorder,
-    _on_data_available: Closure<dyn FnMut(BlobEvent)>,
-    _on_stop: Closure<dyn FnMut()>,
-    _on_error: Closure<dyn FnMut(web_sys::Event)>,
+    recorder: SendWrapper<MediaRecorder>,
+    _on_data_available: SendWrapper<Closure<dyn FnMut(BlobEvent)>>,
+    _on_stop: SendWrapper<Closure<dyn FnMut()>>,
+    _on_error: SendWrapper<Closure<dyn FnMut(web_sys::Event)>>,
 }
 
 impl LocalRecorder {
@@ -24,10 +25,10 @@ impl LocalRecorder {
 
         let chunks_clone = chunks.clone();
         let on_data_available = Closure::wrap(Box::new(move |e: BlobEvent| {
-            if let Some(blob) = e.data() {
-                if blob.size() > 0.0 {
-                    chunks_clone.borrow_mut().push(blob);
-                }
+            if let Some(blob) = e.data()
+                && blob.size() > 0.0
+            {
+                chunks_clone.borrow_mut().push(blob);
             }
         }) as Box<dyn FnMut(BlobEvent)>);
 
@@ -42,33 +43,31 @@ impl LocalRecorder {
             property_bag.set_type("video/webm");
             if let Ok(blob) =
                 web_sys::Blob::new_with_blob_sequence_and_options(&blob_parts, &property_bag)
+                && let Some(window) = web_sys::window()
+                && let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob)
             {
-                if let Some(window) = web_sys::window() {
-                    if let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) {
-                        let document = window.document().unwrap();
-                        let a = document
-                            .create_element("a")
-                            .unwrap()
-                            .dyn_into::<web_sys::HtmlAnchorElement>()
-                            .unwrap();
-                        a.set_href(&url);
-                        a.set_download(&format!("juncto-recording-{}.webm", js_sys::Date::now()));
-                        a.click();
-                        // Delay revoking the object URL so the browser has time
-                        // to fully initiate the download. Revoking synchronously
-                        // after click() can cause download failures in some
-                        // browser environments.
-                        let url_to_revoke = url;
-                        let revoke_cb = Closure::once(move || {
-                            let _ = web_sys::Url::revoke_object_url(&url_to_revoke);
-                        });
-                        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-                            revoke_cb.as_ref().unchecked_ref(),
-                            1000,
-                        );
-                        revoke_cb.forget();
-                    }
-                }
+                let document = window.document().unwrap();
+                let a = document
+                    .create_element("a")
+                    .unwrap()
+                    .dyn_into::<web_sys::HtmlAnchorElement>()
+                    .unwrap();
+                a.set_href(&url);
+                a.set_download(&format!("juncto-recording-{}.webm", js_sys::Date::now()));
+                a.click();
+                // Delay revoking the object URL so the browser has time
+                // to fully initiate the download. Revoking synchronously
+                // after click() can cause download failures in some
+                // browser environments.
+                let url_to_revoke = url;
+                let revoke_cb = Closure::once(move || {
+                    let _ = web_sys::Url::revoke_object_url(&url_to_revoke);
+                });
+                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    revoke_cb.as_ref().unchecked_ref(),
+                    1000,
+                );
+                revoke_cb.forget();
             }
             chunks_clone_2.borrow_mut().clear();
         }) as Box<dyn FnMut()>);
@@ -78,7 +77,7 @@ impl LocalRecorder {
                 .ok()
                 .and_then(|v| v.as_string())
                 .unwrap_or_else(|| "Unknown MediaRecorder error".to_string());
-            on_error.call(msg);
+            on_error.run(msg);
         }) as Box<dyn FnMut(web_sys::Event)>);
 
         recorder.set_ondataavailable(Some(on_data_available.as_ref().unchecked_ref()));
@@ -90,10 +89,10 @@ impl LocalRecorder {
         recorder.start_with_time_slice(5000)?; // 5s slices
 
         Ok(Self {
-            recorder,
-            _on_data_available: on_data_available,
-            _on_stop: on_stop,
-            _on_error: on_error_cb,
+            recorder: SendWrapper::new(recorder),
+            _on_data_available: SendWrapper::new(on_data_available),
+            _on_stop: SendWrapper::new(on_stop),
+            _on_error: SendWrapper::new(on_error_cb),
         })
     }
 

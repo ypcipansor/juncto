@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use shared::{Poll, PollOption};
 
 #[component]
@@ -11,12 +11,12 @@ pub fn PollsDialog(
     on_vote: Callback<(String, u32)>, // poll_id, option_id
     on_close_poll: Callback<String>,
 ) -> impl IntoView {
-    let (active_tab, set_active_tab) = create_signal("active");
+    let (active_tab, set_active_tab) = signal("active");
 
     // Create Poll State
-    let (question, set_question) = create_signal("".to_string());
-    let (option1, set_option1) = create_signal("".to_string());
-    let (option2, set_option2) = create_signal("".to_string());
+    let (question, set_question) = signal("".to_string());
+    let (option1, set_option1) = signal("".to_string());
+    let (option2, set_option2) = signal("".to_string());
 
     let create = move |_| {
         let q = question.get();
@@ -42,7 +42,7 @@ pub fn PollsDialog(
                 voters: std::collections::HashSet::new(),
                 is_closed: false,
             };
-            on_create_poll.call(poll);
+            on_create_poll.run(poll);
             // Reset and switch to active
             set_question.set("".to_string());
             set_option1.set("".to_string());
@@ -51,7 +51,7 @@ pub fn PollsDialog(
         }
     };
 
-    let active_polls = create_memo(move |_| {
+    let active_polls = Memo::new(move |_| {
         polls
             .get()
             .into_iter()
@@ -59,7 +59,7 @@ pub fn PollsDialog(
             .collect::<Vec<_>>()
     });
 
-    let history_polls = create_memo(move |_| {
+    let history_polls = Memo::new(move |_| {
         polls
             .get()
             .into_iter()
@@ -73,7 +73,7 @@ pub fn PollsDialog(
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">"📊 Polls"</h3>
-                        <button id="close-polls-btn" class="modal-close-btn" on:click=move |_| on_close.call(())>"✕"</button>
+                        <button id="close-polls-btn" class="modal-close-btn" on:click=move |_| on_close.run(())>"✕"</button>
                     </div>
 
                     <div class="tabs modal-tabs">
@@ -117,7 +117,7 @@ pub fn PollsDialog(
                                                             class="btn btn-sm btn-danger"
                                                             on:click={
                                                                 let pid_inner = pid.clone();
-                                                                move |_| on_close_poll.call(pid_inner.clone())
+                                                                move |_| on_close_poll.run(pid_inner.clone())
                                                             }
                                                         >
                                                             "Close Poll"
@@ -154,7 +154,7 @@ pub fn PollsDialog(
                                                                                     class="btn btn-sm btn-primary"
                                                                                     on:click={
                                                                                         let pid_inner3 = pid_inner2.clone();
-                                                                                        move |_| on_vote.call((pid_inner3.clone(), opt.id))
+                                                                                        move |_| on_vote.run((pid_inner3.clone(), opt.id))
                                                                                     }
                                                                                 >
                                                                                     "Vote"
@@ -311,7 +311,7 @@ mod tests {
             is_closed: true,
         };
 
-        let polls = vec![p1.clone(), p2.clone()];
+        let polls = [p1.clone(), p2.clone()];
 
         let active: Vec<_> = polls.iter().filter(|p| !p.is_closed).collect();
         let history: Vec<_> = polls.iter().filter(|p| p.is_closed).collect();

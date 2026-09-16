@@ -6,11 +6,12 @@ pub type ChatSendCallback = Callback<(
 )>;
 use crate::components_ui::giphy::GiphySearch;
 use gloo_timers::callback::Timeout;
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
 use shared::{ChatMessage, FileAttachment, Participant};
 use std::collections::HashSet;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 
 const MAX_FILE_SIZE: u64 = 2 * 1024 * 1024; // 2MB
 
@@ -69,11 +70,11 @@ pub fn Chat(
     current_room_id: ReadSignal<Option<String>>,
     is_visitor: Signal<bool>,
 ) -> impl IntoView {
-    let (input_value, set_input_value) = create_signal("".to_string());
-    let (recipient, set_recipient) = create_signal(None::<String>); // None = Everyone
-    let (selected_file, set_selected_file) = create_signal(None::<FileAttachment>);
-    let (show_giphy, set_show_giphy) = create_signal(false);
-    let file_input_ref = create_node_ref::<html::Input>();
+    let (input_value, set_input_value) = signal("".to_string());
+    let (recipient, set_recipient) = signal(None::<String>); // None = Everyone
+    let (selected_file, set_selected_file) = signal(None::<FileAttachment>);
+    let (show_giphy, set_show_giphy) = signal(false);
+    let file_input_ref = NodeRef::<html::Input>::new();
 
     // Store timer handle in a ref to clear it if needed, or just let it fire.
     // In Leptos, we can't easily store non-Clone types in signals.
@@ -83,7 +84,7 @@ pub fn Chat(
     // For simplicity: Send true on every input (throttled?) and false after delay.
 
     // Using a ref to store the last time we sent "start typing" to avoid spamming
-    let last_typing_sent = create_rw_signal(0.0);
+    let last_typing_sent = RwSignal::new(0.0);
 
     let handle_input = move |ev: web_sys::Event| {
         if is_visitor.get_untracked() {
@@ -93,13 +94,13 @@ pub fn Chat(
 
         let now = js_sys::Date::now();
         if now - last_typing_sent.get() > 2000.0 {
-            on_typing.call(true);
+            on_typing.run(true);
             last_typing_sent.set(now);
 
             // Schedule stop typing
             let on_typing = on_typing;
             Timeout::new(3000, move || {
-                on_typing.call(false);
+                on_typing.run(false);
             })
             .forget();
         }
@@ -111,55 +112,54 @@ pub fn Chat(
     // Using Rc<RefCell<Option<Closure>>> pattern inside StoredValue or similar.
     // Actually, just storing it in a RefCell in scope is enough if we weren't in a callback.
     // We can use a StoredValue<Option<Closure<dyn FnMut(web_sys::Event)>>> to hold the active listener.
-    let file_reader_closure = store_value(None::<Closure<dyn FnMut(web_sys::Event)>>);
+    let file_reader_closure = StoredValue::new_local(None::<Closure<dyn FnMut(web_sys::Event)>>);
 
     let handle_file_change = move |ev: web_sys::Event| {
         if is_visitor.get_untracked() {
             return;
         }
         let input: web_sys::HtmlInputElement = event_target(&ev);
-        if let Some(files) = input.files() {
-            if let Some(file) = files.get(0) {
-                let filename = file.name();
-                let mime_type = file.type_();
-                let size = file.size() as u64;
+        if let Some(files) = input.files()
+            && let Some(file) = files.get(0)
+        {
+            let filename = file.name();
+            let mime_type = file.type_();
+            let size = file.size() as u64;
 
-                if size > MAX_FILE_SIZE {
-                    let _ = web_sys::window()
-                        .unwrap()
-                        .alert_with_message("File too large. Max size is 2MB.");
-                    input.set_value("");
-                    return;
-                }
-
-                let reader = web_sys::FileReader::new().unwrap();
-                let reader_clone = reader.clone();
-                // Need to move necessary data into closure
-                let on_load = Closure::wrap(Box::new(move |_e: web_sys::Event| {
-                    if let Ok(res) = reader_clone.result() {
-                        if let Some(data_url) = res.as_string() {
-                            if let Some(content_base64) = extract_base64_from_data_url(&data_url) {
-                                set_selected_file.set(Some(FileAttachment {
-                                    filename: filename.clone(),
-                                    mime_type: mime_type.clone(),
-                                    size,
-                                    content_base64,
-                                }));
-                            }
-                        }
-                    }
-                    // We can't easily drop ourselves from inside ourselves without Interior Mutability gymnastics.
-                    // But overwriting it on next change is "good enough" to prevent infinite accumulation.
-                    // Or we could clear it here if we had access to the StoredValue.
-                }) as Box<dyn FnMut(_)>);
-
-                reader.set_onload(Some(on_load.as_ref().unchecked_ref()));
-
-                // Store the closure to keep it alive and drop previous one
-                file_reader_closure.set_value(Some(on_load));
-
-                let _ = reader.read_as_data_url(&file);
+            if size > MAX_FILE_SIZE {
+                let _ = web_sys::window()
+                    .unwrap()
+                    .alert_with_message("File too large. Max size is 2MB.");
+                input.set_value("");
+                return;
             }
+
+            let reader = web_sys::FileReader::new().unwrap();
+            let reader_clone = reader.clone();
+            // Need to move necessary data into closure
+            let on_load = Closure::wrap(Box::new(move |_e: web_sys::Event| {
+                if let Ok(res) = reader_clone.result()
+                    && let Some(data_url) = res.as_string()
+                    && let Some(content_base64) = extract_base64_from_data_url(&data_url)
+                {
+                    set_selected_file.set(Some(FileAttachment {
+                        filename: filename.clone(),
+                        mime_type: mime_type.clone(),
+                        size,
+                        content_base64,
+                    }));
+                }
+                // We can't easily drop ourselves from inside ourselves without Interior Mutability gymnastics.
+                // But overwriting it on next change is "good enough" to prevent infinite accumulation.
+                // Or we could clear it here if we had access to the StoredValue.
+            }) as Box<dyn FnMut(_)>);
+
+            reader.set_onload(Some(on_load.as_ref().unchecked_ref()));
+
+            // Store the closure to keep it alive and drop previous one
+            file_reader_closure.set_value(Some(on_load));
+
+            let _ = reader.read_as_data_url(&file);
         }
     };
 
@@ -172,8 +172,8 @@ pub fn Chat(
         let attachment = selected_file.get();
 
         if !content.is_empty() || attachment.is_some() {
-            on_send.call((content, target, attachment, current_room_id.get()));
-            on_typing.call(false);
+            on_send.run((content, target, attachment, current_room_id.get()));
+            on_typing.run(false);
             // Ensure optimistic UI is disabled by skipping local addition if backend echoes back
             set_input_value.set("".to_string());
             set_selected_file.set(None);
@@ -256,12 +256,12 @@ pub fn Chat(
                                                     <div>
                                                         <img src=url style="max-width: 200px; border-radius: 4px; display: block; margin-top: 5px;" />
                                                     </div>
-                                                }.into_view()
+                                                }.into_any()
                                             } else {
-                                                view! { <span>{msg.content.clone()}</span> }.into_view()
+                                                view! { <span>{msg.content.clone()}</span> }.into_any()
                                             }
                                         } else {
-                                            view! { <span>{msg.content.clone()}</span> }.into_view()
+                                            view! { <span>{msg.content.clone()}</span> }.into_any()
                                         }
                                     }}
                                     {move || {
@@ -272,7 +272,7 @@ pub fn Chat(
                                                     <div>
                                                         <img src=src style="max-width: 200px; max-height: 200px; display: block; margin-top: 5px;" />
                                                     </div>
-                                                }.into_view()
+                                                }.into_any()
                                             } else {
                                                 let href = format!("data:{};base64,{}", att.mime_type, att.content_base64);
                                                 view! {
@@ -281,10 +281,10 @@ pub fn Chat(
                                                             "📎 " {att.filename.clone()}
                                                         </a>
                                                     </div>
-                                                }.into_view()
+                                                }.into_any()
                                             }
                                         } else {
-                                            view! { <span></span> }.into_view()
+                                            view! { <span></span> }.into_any()
                                         }
                                     }}
                                 </li>
@@ -296,7 +296,7 @@ pub fn Chat(
             <Show when=move || show_giphy.get()>
                 <div class="giphy-search-container" style="margin-bottom: 10px;">
                     <GiphySearch on_select=Callback::new(move |url| {
-                        on_send.call((format!("GIF:{}", url), recipient.get(), None, current_room_id.get()));
+                        on_send.run((format!("GIF:{}", url), recipient.get(), None, current_room_id.get()));
                         set_show_giphy.set(false);
                     })/>
                 </div>
@@ -349,9 +349,9 @@ pub fn Chat(
                             style="width: 100%; font-size: 0.8em;"
                          />
                          {move || if let Some(f) = selected_file.get() {
-                             view! { <small class="selected-file-hint">" Selected: " {f.filename}</small> }.into_view()
+                             view! { <small class="selected-file-hint">" Selected: " {f.filename}</small> }.into_any()
                          } else {
-                             view! { <span/> }.into_view()
+                             view! { <span/> }.into_any()
                          }}
                     </div>
                 </Show>

@@ -18,10 +18,10 @@ pub fn process_chat_message(
     }
 
     // Server-side validation for GIF messages: only allow known Giphy CDN domains
-    if let Some(url) = content.strip_prefix("GIF:") {
-        if !shared::is_giphy_cdn_url(url) {
-            return Err("Invalid GIF URL: only Giphy CDN URLs are allowed".to_string());
-        }
+    if let Some(url) = content.strip_prefix("GIF:")
+        && !shared::is_giphy_cdn_url(url)
+    {
+        return Err("Invalid GIF URL: only Giphy CDN URLs are allowed".to_string());
     }
 
     let chat_msg = ChatMessage {

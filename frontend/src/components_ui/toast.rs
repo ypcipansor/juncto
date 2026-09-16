@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ToastType {
@@ -87,10 +87,10 @@ impl ToastContext {
 
 pub fn provide_toast_context() {
     provide_context(ToastContext {
-        toasts: create_rw_signal(Vec::new()),
-        history: create_rw_signal(Vec::new()),
-        unread: create_rw_signal(0u32),
-        counter: create_rw_signal(0),
+        toasts: RwSignal::new(Vec::new()),
+        history: RwSignal::new(Vec::new()),
+        unread: RwSignal::new(0u32),
+        counter: RwSignal::new(0),
     });
 }
 
@@ -101,7 +101,7 @@ pub fn use_toast() -> ToastContext {
 #[component]
 pub fn NotificationBell() -> impl IntoView {
     let ctx = use_toast();
-    let (open, set_open) = create_signal(false);
+    let (open, set_open) = signal(false);
 
     view! {
         <div style="position: absolute; right: 12px; top: 12px; z-index: 9000;">
@@ -213,12 +213,13 @@ mod tests {
 
     #[test]
     fn test_toast_context_logic() {
-        let _runtime = create_runtime();
+        let owner = Owner::new();
+        owner.set();
         let ctx = ToastContext {
-            toasts: create_rw_signal(Vec::new()),
-            history: create_rw_signal(Vec::new()),
-            unread: create_rw_signal(0u32),
-            counter: create_rw_signal(0),
+            toasts: RwSignal::new(Vec::new()),
+            history: RwSignal::new(Vec::new()),
+            unread: RwSignal::new(0u32),
+            counter: RwSignal::new(0),
         };
 
         ctx.add_advanced("Msg 1".to_string(), ToastType::Info, false, 0);

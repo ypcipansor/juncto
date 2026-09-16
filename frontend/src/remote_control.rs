@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::prelude::*;
+use send_wrapper::SendWrapper;
 use shared::{ClientMessage, RemoteControlAction};
 use std::cell::Cell;
 use std::rc::Rc;
@@ -35,21 +36,21 @@ impl RemoteControlService {
     pub fn new(send_signal: Callback<ClientMessage>) -> Self {
         Self {
             send_signal,
-            controlled_peer: create_rw_signal(None),
-            controlling_peer: create_rw_signal(None),
-            pending_incoming_request: create_rw_signal(None),
+            controlled_peer: RwSignal::new(None),
+            controlling_peer: RwSignal::new(None),
+            pending_incoming_request: RwSignal::new(None),
         }
     }
 
     pub fn request_control(&self, target_id: String) {
         self.send_signal
-            .call(ClientMessage::RequestRemoteControl(target_id));
+            .run(ClientMessage::RequestRemoteControl(target_id));
     }
 
     pub fn stop_control(&self) {
         if let Some(peer_id) = self.controlled_peer.get_untracked() {
             self.send_signal
-                .call(ClientMessage::StopRemoteControl(peer_id));
+                .run(ClientMessage::StopRemoteControl(peer_id));
             self.controlled_peer.set(None);
         }
     }
@@ -60,7 +61,7 @@ impl RemoteControlService {
     pub fn stop_being_controlled(&self) {
         if let Some(peer_id) = self.controlling_peer.get_untracked() {
             self.send_signal
-                .call(ClientMessage::StopRemoteControl(peer_id));
+                .run(ClientMessage::StopRemoteControl(peer_id));
             self.controlling_peer.set(None);
         }
     }
@@ -76,7 +77,7 @@ impl RemoteControlService {
     pub fn send_action(&self, action: RemoteControlAction) {
         if let Some(target_id) = self.controlled_peer.get_untracked() {
             self.send_signal
-                .call(ClientMessage::RemoteControlAction { target_id, action });
+                .run(ClientMessage::RemoteControlAction { target_id, action });
         }
     }
 
@@ -96,7 +97,7 @@ impl RemoteControlService {
             // Auto-deny the new request so the server clears its pending
             // entry. The original requester will receive a `RemoteControlAllowed { allowed: false }`.
             self.send_signal
-                .call(ClientMessage::DenyRemoteControl(requester_id));
+                .run(ClientMessage::DenyRemoteControl(requester_id));
             return;
         }
         self.pending_incoming_request
@@ -115,7 +116,7 @@ impl RemoteControlService {
             } else {
                 ClientMessage::DenyRemoteControl(requester_id)
             };
-            self.send_signal.call(msg);
+            self.send_signal.run(msg);
             self.pending_incoming_request.set(None);
         }
     }
@@ -133,19 +134,19 @@ pub fn use_remote_control() -> RemoteControlService {
 pub fn RemoteControlLayer() -> impl IntoView {
     let rc = use_remote_control();
     // Tracks the timestamp (ms) of the last sent MouseMove for throttling.
-    let last_mousemove_ms: Rc<Cell<f64>> = Rc::new(Cell::new(0.0));
-    let overlay_ref = create_node_ref::<leptos::html::Div>();
+    let last_mousemove_ms: SendWrapper<Rc<Cell<f64>>> = SendWrapper::new(Rc::new(Cell::new(0.0)));
+    let overlay_ref = NodeRef::<leptos::html::Div>::new();
 
     // Programmatically focus the overlay whenever a session becomes active so
     // keyboard events (including ESC to stop) are received without requiring
     // the user to click the overlay first.
-    create_effect({
+    Effect::new({
         let rc = rc.clone();
         move |_| {
-            if rc.controlled_peer.get().is_some() {
-                if let Some(el) = overlay_ref.get() {
-                    let _ = el.focus();
-                }
+            if rc.controlled_peer.get().is_some()
+                && let Some(el) = overlay_ref.get()
+            {
+                let _ = el.focus();
             }
         }
     });
@@ -326,7 +327,8 @@ mod tests {
 
     #[test]
     fn test_remote_control_service_logic() {
-        let _runtime = create_runtime();
+        let owner = Owner::new();
+        owner.set();
         let service = RemoteControlService::new(Callback::new(|_| {}));
 
         assert!(service.controlled_peer.get().is_none());

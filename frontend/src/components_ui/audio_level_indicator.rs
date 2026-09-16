@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 const AUDIO_LEVEL_DOTS: i32 = 5;
 const CENTER_DOT_INDEX: i32 = AUDIO_LEVEL_DOTS / 2;
@@ -50,8 +50,9 @@ mod tests {
 
     #[test]
     fn test_audio_level_indicator_compiles() {
-        let _runtime = create_runtime();
-        let (audio_level, _set_audio_level) = create_signal(0.5);
+        let owner = Owner::new();
+        owner.set();
+        let (audio_level, _set_audio_level) = signal(0.5);
         let _view = view! { <AudioLevelIndicator audio_level=audio_level /> };
     }
 }

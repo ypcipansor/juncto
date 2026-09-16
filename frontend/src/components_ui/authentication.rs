@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn LoginDialog(
@@ -6,15 +6,15 @@ pub fn LoginDialog(
     on_login: Callback<(String, Option<String>)>,
     on_cancel: Callback<()>,
 ) -> impl IntoView {
-    let (username, set_username) = create_signal(String::new());
-    let (password, set_password) = create_signal(String::new());
+    let (username, set_username) = signal(String::new());
+    let (password, set_password) = signal(String::new());
 
     let handle_submit = move |_| {
         let u = username.get();
         let p = password.get();
         if !u.is_empty() && !p.is_empty() {
             let pass = Some(p);
-            on_login.call((u, pass));
+            on_login.run((u, pass));
         }
     };
 
@@ -23,7 +23,7 @@ pub fn LoginDialog(
             <div class="modal-content login-dialog" style="width: 320px;">
                 <div class="modal-header">
                     <h3>"Authentication Required"</h3>
-                    <button class="modal-close-btn" on:click=move |_| on_cancel.call(())>"×"</button>
+                    <button class="modal-close-btn" on:click=move |_| on_cancel.run(())>"×"</button>
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label class="form-label">"Username"</label>
@@ -55,7 +55,7 @@ pub fn LoginDialog(
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button
                         class="btn btn-secondary login-cancel-btn"
-                        on:click=move |_| on_cancel.call(())
+                        on:click=move |_| on_cancel.run(())
                     >
                         "Cancel"
                     </button>
@@ -78,8 +78,9 @@ mod tests {
 
     #[test]
     fn test_login_dialog_compiles() {
-        let _ = create_runtime();
-        let (auth_error, _set_auth_error) = create_signal::<Option<String>>(None);
+        let owner = Owner::new();
+        owner.set();
+        let (auth_error, _set_auth_error) = signal::<Option<String>>(None);
         let on_login = Callback::new(|_: (String, Option<String>)| {});
         let on_cancel = Callback::new(|_: ()| {});
 

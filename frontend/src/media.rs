@@ -1,8 +1,9 @@
+use send_wrapper::SendWrapper;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{
     AnalyserNode, AudioContext, CanvasRenderingContext2d, DynamicsCompressorNode,
@@ -133,10 +134,10 @@ pub struct VideoProcessor {
     context: CanvasRenderingContext2d,
     video: HtmlVideoElement,
     #[allow(dead_code)]
-    _closure: Closure<dyn FnMut()>,
+    _closure: SendWrapper<Closure<dyn FnMut()>>,
     interval_id: i32,
     #[allow(dead_code)]
-    mode: Rc<RefCell<String>>,
+    mode: SendWrapper<Rc<RefCell<String>>>,
 }
 
 impl VideoProcessor {
@@ -244,9 +245,9 @@ impl VideoProcessor {
                 canvas,
                 context,
                 video,
-                _closure: closure,
+                _closure: SendWrapper::new(closure),
                 interval_id,
-                mode,
+                mode: SendWrapper::new(mode),
             },
             processed_stream,
         ))
@@ -288,13 +289,13 @@ pub async fn get_display_media() -> Result<MediaStream, JsValue> {
     // retrying with the relaxed video-only constraints does not produce
     // a duplicate picker.
     fn is_audio_capability_error(err: &JsValue) -> bool {
-        if let Ok(name) = js_sys::Reflect::get(err, &"name".into()) {
-            if let Some(name) = name.as_string() {
-                return matches!(
-                    name.as_str(),
-                    "NotSupportedError" | "TypeError" | "OverconstrainedError" | "NotFoundError"
-                );
-            }
+        if let Ok(name) = js_sys::Reflect::get(err, &"name".into())
+            && let Some(name) = name.as_string()
+        {
+            return matches!(
+                name.as_str(),
+                "NotSupportedError" | "TypeError" | "OverconstrainedError" | "NotFoundError"
+            );
         }
         false
     }
@@ -354,10 +355,10 @@ pub struct AudioMonitor {
     #[allow(dead_code)]
     analyser: AnalyserNode,
     _source: web_sys::MediaStreamAudioSourceNode,
-    _closure: Closure<dyn FnMut()>,
+    _closure: SendWrapper<Closure<dyn FnMut()>>,
     interval_id: i32,
-    is_muted: std::rc::Rc<std::cell::RefCell<bool>>,
-    is_noise_suppression_enabled: std::rc::Rc<std::cell::RefCell<bool>>,
+    is_muted: SendWrapper<std::rc::Rc<std::cell::RefCell<bool>>>,
+    is_noise_suppression_enabled: SendWrapper<std::rc::Rc<std::cell::RefCell<bool>>>,
     isolated_stream: MediaStream,
     compressor: Option<DynamicsCompressorNode>,
 }
@@ -470,10 +471,10 @@ impl AudioMonitor {
                         toast_fired_for_this_mute_cycle = true;
                         // For closures that can't easily access leptos context, we can dispatch a custom event
                         // or rely on a passed-in callback. We'll fire a global custom event.
-                        if let Some(window) = web_sys::window() {
-                            if let Ok(event) = web_sys::CustomEvent::new("talk_while_muted") {
-                                let _ = window.dispatch_event(&event);
-                            }
+                        if let Some(window) = web_sys::window()
+                            && let Ok(event) = web_sys::CustomEvent::new("talk_while_muted")
+                        {
+                            let _ = window.dispatch_event(&event);
                         }
                     }
                 } else {
@@ -526,10 +527,10 @@ impl AudioMonitor {
                 if noise_counter > 50 && !noise_triggered {
                     // 5 seconds of consistent noise
                     noise_triggered = true;
-                    if let Some(window) = web_sys::window() {
-                        if let Ok(event) = web_sys::CustomEvent::new("noise_detected") {
-                            let _ = window.dispatch_event(&event);
-                        }
+                    if let Some(window) = web_sys::window()
+                        && let Ok(event) = web_sys::CustomEvent::new("noise_detected")
+                    {
+                        let _ = window.dispatch_event(&event);
                     }
                 }
             } else if is_talking {
@@ -567,10 +568,10 @@ impl AudioMonitor {
             context,
             analyser,
             _source: source,
-            _closure: closure,
+            _closure: SendWrapper::new(closure),
             interval_id,
-            is_muted,
-            is_noise_suppression_enabled,
+            is_muted: SendWrapper::new(is_muted),
+            is_noise_suppression_enabled: SendWrapper::new(is_noise_suppression_enabled),
             isolated_stream,
             compressor,
         })

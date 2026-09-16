@@ -1,8 +1,10 @@
 use crate::media::{
-    get_audio_input_devices, get_user_media, get_video_input_devices, AudioMonitor, DeviceInfo,
+    AudioMonitor, DeviceInfo, get_audio_input_devices, get_user_media, get_video_input_devices,
 };
 use crate::state::JoinOptions;
-use leptos::*;
+use leptos::html;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
 use wasm_bindgen::JsCast;
 use web_sys::MediaStream;
 
@@ -17,35 +19,34 @@ pub fn PrejoinScreen(
     password_required: Signal<bool>,
 ) -> impl IntoView {
     let initial_settings = crate::storage::load_settings();
-    let (display_name, set_display_name) = create_signal(
+    let (display_name, set_display_name) = signal(
         initial_settings
             .display_name
             .clone()
             .unwrap_or_else(|| "Guest".to_string()),
     );
-    let (avatar_url, set_avatar_url) = create_signal("".to_string());
+    let (avatar_url, set_avatar_url) = signal("".to_string());
 
     // Device Lists
-    let (video_devices, set_video_devices) = create_signal(Vec::<DeviceInfo>::new());
-    let (audio_devices, set_audio_devices) = create_signal(Vec::<DeviceInfo>::new());
+    let (video_devices, set_video_devices) = signal(Vec::<DeviceInfo>::new());
+    let (audio_devices, set_audio_devices) = signal(Vec::<DeviceInfo>::new());
 
     // Selected Devices
-    let (selected_video_device, set_selected_video_device) =
-        create_signal(initial_settings.camera_id);
-    let (selected_audio_device, set_selected_audio_device) = create_signal(initial_settings.mic_id);
+    let (selected_video_device, set_selected_video_device) = signal(initial_settings.camera_id);
+    let (selected_audio_device, set_selected_audio_device) = signal(initial_settings.mic_id);
 
     // Toggles
-    let (is_camera_on, set_is_camera_on) = create_signal(false);
-    let (is_mic_on, set_is_mic_on) = create_signal(true);
-    let (is_visitor, set_is_visitor) = create_signal(false);
+    let (is_camera_on, set_is_camera_on) = signal(false);
+    let (is_mic_on, set_is_mic_on) = signal(true);
+    let (is_visitor, set_is_visitor) = signal(false);
 
     // Stream & Audio Monitor
-    let (local_stream, set_local_stream) = create_signal(None::<MediaStream>);
-    let (_audio_monitor, set_audio_monitor) = create_signal(None::<AudioMonitor>);
-    let (is_speaking, set_is_speaking) = create_signal(false);
+    let (local_stream, set_local_stream) = signal(None::<MediaStream>);
+    let (_audio_monitor, set_audio_monitor) = signal(None::<AudioMonitor>);
+    let (is_speaking, set_is_speaking) = signal(false);
 
     // Load Devices on Mount
-    create_effect(move |_| {
+    Effect::new(move |_| {
         spawn_local(async move {
             let v_devices = get_video_input_devices().await.ok().unwrap_or_default();
             let a_devices = get_audio_input_devices().await.ok().unwrap_or_default();
@@ -56,10 +57,8 @@ pub fn PrejoinScreen(
                 let vid_valid = saved_vid
                     .as_ref()
                     .is_some_and(|id| v_devices.iter().any(|d| &d.device_id == id));
-                if !vid_valid {
-                    if let Some(first) = v_devices.first() {
-                        set_selected_video_device.set(Some(first.device_id.clone()));
-                    }
+                if !vid_valid && let Some(first) = v_devices.first() {
+                    set_selected_video_device.set(Some(first.device_id.clone()));
                 }
 
                 set_audio_devices.set(a_devices.clone());
@@ -67,10 +66,8 @@ pub fn PrejoinScreen(
                 let aid_valid = saved_aid
                     .as_ref()
                     .is_some_and(|id| a_devices.iter().any(|d| &d.device_id == id));
-                if !aid_valid {
-                    if let Some(first) = a_devices.first() {
-                        set_selected_audio_device.set(Some(first.device_id.clone()));
-                    }
+                if !aid_valid && let Some(first) = a_devices.first() {
+                    set_selected_audio_device.set(Some(first.device_id.clone()));
                 }
             });
         });
@@ -91,7 +88,7 @@ pub fn PrejoinScreen(
     };
 
     // Update Stream when settings change
-    create_effect(move |_| {
+    Effect::new(move |_| {
         let cam_on = is_camera_on.get();
         let mic_on = is_mic_on.get();
         let v_id = selected_video_device.get();
@@ -109,28 +106,25 @@ pub fn PrejoinScreen(
             set_local_stream.set(None);
             set_audio_monitor.set(None);
 
-            if cam_on || mic_on {
-                if let Ok(stream) = get_user_media(cam_on, true, v_id, a_id, Some("hd")).await {
-                    let audio_tracks = stream.get_audio_tracks();
-                    for i in 0..audio_tracks.length() {
-                        if let Ok(track) =
-                            audio_tracks.get(i).dyn_into::<web_sys::MediaStreamTrack>()
-                        {
-                            track.set_enabled(mic_on);
-                        }
+            if (cam_on || mic_on)
+                && let Ok(stream) = get_user_media(cam_on, true, v_id, a_id, Some("hd")).await
+            {
+                let audio_tracks = stream.get_audio_tracks();
+                for i in 0..audio_tracks.length() {
+                    if let Ok(track) = audio_tracks.get(i).dyn_into::<web_sys::MediaStreamTrack>() {
+                        track.set_enabled(mic_on);
                     }
+                }
 
-                    set_local_stream.set(Some(stream.clone()));
+                set_local_stream.set(Some(stream.clone()));
 
-                    if mic_on {
-                        let on_speaking = Box::new(move |speaking: bool| {
-                            set_is_speaking.set(speaking);
-                        });
-                        if let Ok(monitor) =
-                            AudioMonitor::new(&stream, on_speaking, None, None, false)
-                        {
-                            set_audio_monitor.set(Some(monitor));
-                        }
+                if mic_on {
+                    let on_speaking = Box::new(move |speaking: bool| {
+                        set_is_speaking.set(speaking);
+                    });
+                    if let Ok(monitor) = AudioMonitor::new(&stream, on_speaking, None, None, false)
+                    {
+                        set_audio_monitor.set(Some(monitor));
                     }
                 }
             }
@@ -141,13 +135,13 @@ pub fn PrejoinScreen(
         stop_stream();
     });
 
-    let (room_password, set_room_password) = create_signal(String::new());
+    let (room_password, set_room_password) = signal(String::new());
 
     let handle_join = move |_| {
         stop_stream();
         let av = avatar_url.get_untracked();
         let pw = room_password.get_untracked();
-        on_join.call(JoinOptions {
+        on_join.run(JoinOptions {
             display_name: display_name.get_untracked(),
             mic_enabled: is_mic_on.get_untracked(),
             camera_enabled: is_camera_on.get_untracked(),
@@ -159,8 +153,8 @@ pub fn PrejoinScreen(
         });
     };
 
-    let video_ref = create_node_ref::<html::Video>();
-    create_effect(move |_| {
+    let video_ref = NodeRef::<html::Video>::new();
+    Effect::new(move |_| {
         if let Some(video) = video_ref.get() {
             if let Some(stream) = local_stream.get() {
                 video.set_src_object(Some(&stream));
@@ -341,9 +335,10 @@ mod tests {
     #[test]
     #[ignore]
     fn test_prejoin_compiles() {
-        let _ = create_runtime();
+        let owner = Owner::new();
+        owner.set();
         let on_join = Callback::new(|_: JoinOptions| {});
-        let (is_connected, _) = create_signal(true);
+        let (is_connected, _) = signal(true);
 
         let _view = view! {
             <PrejoinScreen on_join=on_join is_connected=is_connected />

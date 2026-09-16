@@ -1,5 +1,6 @@
 use leptos::leptos_dom::helpers::IntervalHandle;
-use leptos::*;
+use leptos::prelude::*;
+use send_wrapper::SendWrapper;
 use shared::{ClientMessage, FaceExpression};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -8,15 +9,15 @@ use std::rc::Rc;
 pub struct FaceLandmarksService {
     send_signal: Callback<ClientMessage>,
     pub active: RwSignal<bool>,
-    interval: Rc<RefCell<Option<IntervalHandle>>>,
+    interval: SendWrapper<Rc<RefCell<Option<IntervalHandle>>>>,
 }
 
 impl FaceLandmarksService {
     pub fn new(send_signal: Callback<ClientMessage>) -> Self {
         Self {
             send_signal,
-            active: create_rw_signal(false),
-            interval: Rc::new(RefCell::new(None)),
+            active: RwSignal::new(false),
+            interval: SendWrapper::new(Rc::new(RefCell::new(None))),
         }
     }
 
@@ -46,7 +47,7 @@ impl FaceLandmarksService {
                     expression: expressions[idx].to_string(),
                     timestamp: js_sys::Date::now() as u64,
                 });
-                send_signal.call(msg);
+                send_signal.run(msg);
             },
             std::time::Duration::from_secs(5),
         ) {
@@ -91,7 +92,8 @@ mod tests {
 
     #[test]
     fn test_face_landmarks_service_logic() {
-        let _runtime = create_runtime();
+        let owner = Owner::new();
+        owner.set();
         let service = FaceLandmarksService::new(Callback::new(|_| {}));
 
         assert!(!service.active.get());

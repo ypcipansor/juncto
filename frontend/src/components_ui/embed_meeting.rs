@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
 fn escape_html(s: &str) -> String {
@@ -10,21 +10,20 @@ fn escape_html(s: &str) -> String {
 
 #[component]
 pub fn EmbedMeetingDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> impl IntoView {
-    let (copy_success, set_copy_success) = create_signal(false);
-    let (iframe_code, set_iframe_code) = create_signal("".to_string());
+    let (copy_success, set_copy_success) = signal(false);
+    let (iframe_code, set_iframe_code) = signal("".to_string());
 
     // Update the URL on show
-    create_effect(move |_| {
-        if show.get() {
-            if let Some(window) = web_sys::window() {
-                if let Ok(loc) = window.location().href() {
-                    set_iframe_code.set(format!(
+    Effect::new(move |_| {
+        if show.get()
+            && let Some(window) = web_sys::window()
+            && let Ok(loc) = window.location().href()
+        {
+            set_iframe_code.set(format!(
                         "<iframe src=\"{}\" allow=\"camera; microphone; display-capture; fullscreen\" width=\"100%\" height=\"600px\" style=\"border: none;\"></iframe>",
                         escape_html(&loc)
                     ));
-                    set_copy_success.set(false);
-                }
-            }
+            set_copy_success.set(false);
         }
     });
 
@@ -33,17 +32,17 @@ pub fn EmbedMeetingDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> imp
             let navigator = window.navigator();
             let clipboard_prop = js_sys::Reflect::get(&navigator, &"clipboard".into());
 
-            if let Ok(val) = clipboard_prop {
-                if !val.is_undefined() && !val.is_null() {
-                    if let Ok(clipboard) = val.dyn_into::<web_sys::Clipboard>() {
-                        let promise = clipboard.write_text(&iframe_code.get());
-                        wasm_bindgen_futures::spawn_local(async move {
-                            if wasm_bindgen_futures::JsFuture::from(promise).await.is_ok() {
-                                set_copy_success.set(true);
-                            }
-                        });
+            if let Ok(val) = clipboard_prop
+                && !val.is_undefined()
+                && !val.is_null()
+                && let Ok(clipboard) = val.dyn_into::<web_sys::Clipboard>()
+            {
+                let promise = clipboard.write_text(&iframe_code.get());
+                wasm_bindgen_futures::spawn_local(async move {
+                    if wasm_bindgen_futures::JsFuture::from(promise).await.is_ok() {
+                        set_copy_success.set(true);
                     }
-                }
+                });
             }
         }
     };
@@ -54,7 +53,7 @@ pub fn EmbedMeetingDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> imp
                 <div class="dialog-content" style="min-width: 400px;">
                     <div class="modal-header">
                         <h3>"Embed Meeting"</h3>
-                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
                     <p>"Copy the iframe code below to embed this meeting on your website:"</p>
                     <textarea
@@ -67,7 +66,7 @@ pub fn EmbedMeetingDialog(show: ReadSignal<bool>, on_close: Callback<()>) -> imp
                         <button class="btn btn-success" on:click=copy_to_clipboard>
                             {move || if copy_success.get() { "Copied!" } else { "Copy Iframe Code" }}
                         </button>
-                        <button class="btn btn-danger" on:click=move |_| on_close.call(())>
+                        <button class="btn btn-danger" on:click=move |_| on_close.run(())>
                             "Close"
                         </button>
                     </div>
@@ -84,8 +83,9 @@ mod tests {
     #[test]
     #[ignore]
     fn test_embed_meeting_compiles() {
-        let _ = create_runtime();
-        let show = create_rw_signal(true);
+        let owner = Owner::new();
+        owner.set();
+        let show = RwSignal::new(true);
         let on_close = Callback::new(|_: ()| {});
 
         let _view = view! {

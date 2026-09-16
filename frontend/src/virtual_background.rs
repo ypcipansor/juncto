@@ -1,5 +1,5 @@
 use crate::i18n::t;
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn VirtualBackgroundDialog(
@@ -9,7 +9,7 @@ pub fn VirtualBackgroundDialog(
     current_mode: ReadSignal<String>,
 ) -> impl IntoView {
     let apply = move |mode: String| {
-        on_change.call(mode);
+        on_change.run(mode);
     };
 
     view! {
@@ -18,7 +18,7 @@ pub fn VirtualBackgroundDialog(
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3 class="modal-title">{move || t("virtual_background")}</h3>
-                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"✕"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.run(())>"✕"</button>
                     </div>
 
                     <div class="options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px;">
@@ -75,7 +75,7 @@ pub fn VirtualBackgroundDialog(
                     <div style="margin-top: 24px; text-align: right;">
                          <button
                             class="btn btn-primary"
-                            on:click=move |_| on_close.call(())
+                            on:click=move |_| on_close.run(())
                         >
                             {move || t("done")}
                         </button>
@@ -88,11 +88,12 @@ pub fn VirtualBackgroundDialog(
 
 #[cfg(test)]
 mod tests {
-    use leptos::*;
+    use leptos::prelude::*;
     #[test]
     fn test_virtual_background_selection() {
-        let _runtime = create_runtime();
-        let (current_mode, _set_current_mode) = create_signal::<String>("blur".to_string());
+        let owner = Owner::new();
+        owner.set();
+        let (current_mode, _set_current_mode) = signal::<String>("blur".to_string());
         assert_eq!(current_mode.get(), "blur");
     }
 }

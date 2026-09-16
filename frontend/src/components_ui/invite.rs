@@ -1,6 +1,6 @@
-use crate::components_ui::toast::{use_toast, ToastType};
+use crate::components_ui::toast::{ToastType, use_toast};
 use crate::i18n::t;
-use leptos::*;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
 #[component]
@@ -25,19 +25,19 @@ pub fn InviteDialog(
             // This fixes Bug 1: Navigator.clipboard() will panic in insecure (HTTP) contexts
             let clipboard_prop = js_sys::Reflect::get(&navigator, &"clipboard".into());
 
-            if let Ok(val) = clipboard_prop {
-                if !val.is_undefined() && !val.is_null() {
-                    if let Ok(clipboard) = val.dyn_into::<web_sys::Clipboard>() {
-                        let promise = clipboard.write_text(&url);
-                        wasm_bindgen_futures::spawn_local(async move {
-                            match wasm_bindgen_futures::JsFuture::from(promise).await {
-                                Ok(_) => toast.add(msg_success, ToastType::Success),
-                                Err(_) => toast.add(msg_error, ToastType::Error),
-                            }
-                        });
-                        return;
+            if let Ok(val) = clipboard_prop
+                && !val.is_undefined()
+                && !val.is_null()
+                && let Ok(clipboard) = val.dyn_into::<web_sys::Clipboard>()
+            {
+                let promise = clipboard.write_text(&url);
+                wasm_bindgen_futures::spawn_local(async move {
+                    match wasm_bindgen_futures::JsFuture::from(promise).await {
+                        Ok(_) => toast.add(msg_success, ToastType::Success),
+                        Err(_) => toast.add(msg_error, ToastType::Error),
                     }
-                }
+                });
+                return;
             }
 
             // Fallback if clipboard API is not available
@@ -54,7 +54,7 @@ pub fn InviteDialog(
                 <div class="modal-content" style="width: 400px;">
                     <div class="modal-header">
                         <h3>{move || t("invite_people")}</h3>
-                        <button class="modal-close-btn" on:click=move |_| on_close.call(())>"×"</button>
+                        <button class="modal-close-btn" on:click=move |_| on_close.run(())>"×"</button>
                     </div>
 
                     <p style="margin-bottom: 10px;">
@@ -88,8 +88,8 @@ mod tests {
     #[test]
     fn test_invite_dialog_render() {
         // Basic syntax check for component macro usage
-        let (_show, _set_show) = create_signal(true);
-        let (_url, _set_url) = create_signal("http://test.com".to_string());
+        let (_show, _set_show) = signal(true);
+        let (_url, _set_url) = signal("http://test.com".to_string());
 
         // In a unit test environment without DOM, we can mainly check if logic compiles.
         // Leptos components are functions, so we can technically call it, but without a reactive root it panics.

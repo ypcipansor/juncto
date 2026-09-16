@@ -16,11 +16,11 @@ pub async fn create_room(
     // so the REST endpoint cannot be used to bypass the 256-character limit.
     // Use `chars().count()` (not byte length) so multi-byte UTF-8 content
     // (CJK, emoji) is treated consistently with what users see.
-    if let Some(ref s) = payload.subject {
-        if s.chars().count() > 256 {
-            let err = json!({ "error": "Invalid subject: too long" });
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        }
+    if let Some(ref s) = payload.subject
+        && s.chars().count() > 256
+    {
+        let err = json!({ "error": "Invalid subject: too long" });
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
     // Normalize empty subject to `None` for defensive consistency with the
@@ -97,10 +97,10 @@ pub async fn create_room(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::Router;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use axum::routing::post;
-    use axum::Router;
     use std::collections::HashMap;
     use std::sync::Mutex;
     use tower::ServiceExt;

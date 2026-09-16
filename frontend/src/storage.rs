@@ -47,11 +47,11 @@ pub fn save_settings(settings: &UserSettings) {
         };
         let storage = window.local_storage().ok().flatten();
 
-        if let Some(storage) = storage {
-            if let Ok(json) = serde_json::to_string(settings) {
-                let _key = STORAGE_KEY;
-                let _ = storage.set_item(_key, &json);
-            }
+        if let Some(storage) = storage
+            && let Ok(json) = serde_json::to_string(settings)
+        {
+            let _key = STORAGE_KEY;
+            let _ = storage.set_item(_key, &json);
         }
     }
 }
