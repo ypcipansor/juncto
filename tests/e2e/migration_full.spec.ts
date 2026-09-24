@@ -1,7 +1,7 @@
 import { test, expect, BrowserContext } from '@playwright/test';
 
 async function setupGiphyMock(context: BrowserContext) {
-    await context.route(/.*api.giphy.com.*/, async route => {
+    await context.route(/^https?:\/\/api\.giphy\.com(?:\/|$)/, async route => {
         console.log('Mocking Giphy Request:', route.request().url());
         const json = {
             data: [
